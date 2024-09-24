@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Icelandic inflectional patterns</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js"></script>
+</head>
+<body>
+    <div class="grid-container">
+        <div class="header">
+            <h1 data-text="title">"Icelandic inflectional patterns"</h1>
+        </div>
+        <div class="langs">
+            <input type="radio" id="lang-en" onclick="setLanguage('en', document);" name="lang">
+            <label for="lang-en">English</label><br>
+            <input type="radio" id="lang-is" onclick="setLanguage('is', document);" name="lang">
+            <label for="lang-is">Íslenska (ekki tilbúin)</label><br>
+            <input type="radio" id="lang-sv" onclick="setLanguage('sv', document);" name="lang">
+            <label for="lang-sv">Svenska</label><br>
+        </div>
+        <div class="info">
+            <p data-text="info">
+                On this page you can define and view tables of inflectional patterns for Icelandic words.
+                Start with clicking some of the buttons on the left to view precomputed tables.
+                This should give you an idea about how to use the drop-down menus to define
+                your own table structures.
+                The word classes and inflectional categories used can be found
+                <a href="https://bin.arnastofnun.is/DMII/infl-system/ target='_blank'">here</a>.
+                A list of the possible inflections can be found
+                <a href="https://bin.arnastofnun.is/DMII/LTdata/tagset/ target='_blank'">here</a>.
+                Note that this page consistently uses the terms "indefinite" and "definite" to refer
+                to the strong and weak forms of adjectives respectively. Dealing with verb conjugation,
+                especially when the last three inflectional categories are involved,
+                can currently be clunky and inflexible. This will hopefully be fixed in the future.<br>
+
+                The affixes of a pattern consist of characters that differ between the relevant inflectional
+                forms, i.e. those described in the tables. This means that the resulting affixes may change
+                depending on how the tables are defined.
+                <b>The analysis is very imperfect and should be taken with a grain of salt.</b>
+                The patterns are sorted in order of frequency of which a word adhering to the pattern
+                appears in Icelandic texts, out of all words in the word class. This is the percentage found
+                under the tables. The words under that are the 20 most common words adhering to the pattern.
+            </p>
+        </div>
+        <div class="menu">
+            <div id="viewText" data-text="viewPrecomputedTables">View precomputed tables:</div>
+            <button type="button" onclick="viewPrecomputed('noun');" class="viewButton" data-text="noun">
+                Noun
+            </button><br>
+            <button type="button" onclick="viewPrecomputed('indefNoun');" class="viewButton" data-text="indefNoun">
+                Indefinite noun
+            </button><br>
+            <button type="button" onclick="viewPrecomputed('masculineNoun');" class="viewButton" data-text="masculineNoun">
+                Masculine noun
+            </button><br>
+            <button type="button" onclick="viewPrecomputed('indefMasculineNoun');" class="viewButton" data-text="indefMasculineNoun">
+                Indefinite masculine noun
+            </button><br>
+            <button type="button" onclick="viewPrecomputed('feminineNoun');" class="viewButton" data-text="feminineNoun">
+                Feminine noun
+            </button><br>
+            <button type="button" onclick="viewPrecomputed('indefFeminineNoun');" class="viewButton" data-text="indefFeminineNoun">
+                Indefinite feminine noun
+            </button><br>
+            <button type="button" onclick="viewPrecomputed('neuterNoun');" class="viewButton" data-text="neuterNoun">
+                Neuter noun
+            </button><br>
+            <button type="button" onclick="viewPrecomputed('indefNeuterNoun');" class="viewButton" data-text="indefNeuterNoun" style="margin-bottom:12px;">
+                Indefinite neuter noun
+            </button><br>
+            <button type="button" onclick="viewPrecomputed('adjective');" class="viewButton" data-text="adjective">
+                Adjective
+            </button><br>
+            <button type="button" onclick="viewPrecomputed('strongPositiveAdjective');" class="viewButton" data-text="strongPositiveAdjective" style="margin-bottom:12px;">
+                Strong positive adjective
+            </button><br>
+            <button type="button" onclick="viewPrecomputed('activeVerb');" class="viewButton" data-text="activeVerb">
+                Active verb
+            </button><br>
+            <button type="button" onclick="viewPrecomputed('activeIndicativeVerb');" class="viewButton" data-text="activeIndicativeVerb" style="margin-bottom:12px;">
+                Active indicative verb
+            </button><br>
+            <button type="button" onclick="viewPrecomputed('numeral');" class="viewButton" data-text="numeral">
+                Numeral
+            </button><br>
+            <button type="button" onclick="viewPrecomputed('ordinal');" class="viewButton" data-text="ordinal" style="margin-bottom:12px;">
+                Ordinal
+            </button><br>
+            <button type="button" onclick="viewPrecomputed('persPronoun');" class="viewButton" data-text="personalPronoun">
+                Personal pronoun
+            </button><br>
+            <button type="button" onclick="viewPrecomputed('refPronoun');" class="viewButton" data-text="reflexivePronoun">
+                Reflexive pronoun
+            </button><br>
+            <button type="button" onclick="viewPrecomputed('otherPronoun');" class="viewButton" data-text="otherPronoun" style="margin-bottom:12px;">
+                Other pronoun
+            </button><br>
+            <button type="button" onclick="viewPrecomputed('defArticle');" class="viewButton" data-text="definiteArticle" style="margin-bottom:12px;">
+                Definite article
+            </button><br>
+            <button type="button" onclick="viewPrecomputed('adverb');" class="viewButton" data-text="adverb">
+                Adverb
+            </button><br>
+        </div>
+
+        <div class="main">
+            <div id="wordClassPicker">
+                <label data-text="wordClassToAnalyze" for="wordClass">Word class to analyze:</label>
+                <select id="wordClass" onchange="selectWordClass(this.value)">
+                    <option data-text="selectAWordClass" disabled selected>Select a word class</option>
+                    <option data-text="noun" value="noun">noun</option>
+                    <option data-text="masculineNoun" value="masculineNoun">masculine noun</option>
+                    <option data-text="feminineNoun" value="feminineNoun">feminine noun</option>
+                    <option data-text="neuterNoun" value="neuterNoun">neuter noun</option>
+                    <option data-text="adjective" value="adjective">adjective</option>
+                    <option data-text="verb" value="verb">verb</option>
+                    <option data-text="numeral" value="numeral">numeral</option>
+                    <option data-text="ordinal" value="ordinal">ordinal</option>
+                    <option data-text="personalPronoun" value="personalPronoun">personal pronoun</option>
+                    <option data-text="reflexivePronoun" value="reflexivePronoun">reflexive pronoun</option>
+                    <option data-text="otherPronoun" value="otherPronoun">other pronoun</option>
+                    <option data-text="definiteArticle" value="definiteArticle">definite article</option>
+                    <option data-text="adverb" value="adverb">adverb</option>
+                </select>
+            </div>
+
+            <form onsubmit="analyzeAndShowPatterns(new FormData(this)); return false">
+                <div class="form-group">
+                    <div id="casePicker" class="hidden" style="float:left;margin-right:20px;">
+                        <label for="selectCase" style="display:block;" data-text="caseLabel">Case:</label>
+                        <select id="selectCase" name="case" style="display:block;">
+                            <option value="*" data-text="undefined" selected>undefined</option>
+                            <option value="-" data-text="varyByRow">vary by row</option>
+                            <option value="|" data-text="varyByColumn">vary by column</option>
+                            <option value="N" data-text="nominative">nominative</option>
+                            <option value="A" data-text="accusative">accusative</option>
+                            <option value="D" data-text="dative">dative</option>
+                            <option value="G" data-text="genitive">genitive</option>
+                        </select>
+                    </div>
+
+                    <div id="personPicker" class="hidden" style="float:left;margin-right:20px;">
+                        <label for="selectPerson" style="display:block;" data-text="personLabel">Person:</label>
+                        <select id="selectPerson" name="person" style="display:block;">
+                            <option value="*" data-text="undefined" selected>undefined</option>
+                            <option value="-" data-text="varyByRow">vary by row</option>
+                            <option value="|" data-text="varyByColumn">vary by column</option>
+                            <option value="1" data-text="first">1st</option>
+                            <option value="2" data-text="second">2nd</option>
+                            <option value="3" data-text="third">3rd</option>
+                        </select>
+                    </div>
+
+                    <div id="numberPicker" class="hidden" style="float:left;margin-right:20px;">
+                        <label for="selectNumber" style="display:block;" data-text="numberLabel">Number:</label>
+                        <select id="selectNumber" name="number" style="display:block;">
+                            <option value="*" data-text="undefined" selected>undefined</option>
+                            <option value="-" data-text="varyByRow">vary by row</option>
+                            <option value="|" data-text="varyByColumn">vary by column</option>
+                            <option value="S" data-text="singular">singular</option>
+                            <option value="P" data-text="plural">plural</option>
+                        </select>
+                    </div>
+
+                    <div id="definitenessPicker" class="hidden" style="float:left;margin-right:20px;">
+                        <label for="selectDefiniteness" style="display:block;" data-text="definitenessLabel">Definiteness:</label>
+                        <select id="selectDefiniteness" name="definiteness" style="display:block;">
+                            <option value="*" data-text="undefined" selected>undefined</option>
+                            <option value="-" data-text="varyByRow">vary by row</option>
+                            <option value="|" data-text="varyByColumn">vary by column</option>
+                            <option value="D" data-text="definite">definite</option>
+                            <option value="I" data-text="indefinite">indefinite</option>
+                        </select>
+                    </div>
+
+                    <div id="genderPicker" class="hidden" style="float:left;margin-right:20px;">
+                        <label for="selectGender" style="display:block;" data-text="genderLabel">Gender:</label>
+                        <select id="selectGender" name="gender" style="display:block;">
+                            <option value="*" data-text="undefined" selected>undefined</option>
+                            <option value="-" data-text="varyByRow">vary by row</option>
+                            <option value="|" data-text="varyByColumn">vary by column</option>
+                            <option value="M" data-text="masculine">masculine</option>
+                            <option value="F" data-text="feminine">feminine</option>
+                            <option value="N" data-text="neuter">neuter</option>
+                        </select>
+                    </div>
+
+                    <div id="degreePicker" class="hidden" style="float:left;margin-right:20px;">
+                        <label for="selectDegree" style="display:block;" data-text="degreeLabel">Degree of comparison:</label>
+                        <select id="selectDegree" name="degree" style="display:block;">
+                            <option value="*" data-text="undefined" selected>undefined</option>
+                            <option value="-" data-text="varyByRow">vary by row</option>
+                            <option value="|" data-text="varyByColumn">vary by column</option>
+                            <option value="P" data-text="positive">positive</option>
+                            <option value="C" data-text="comparative">comparative</option>
+                            <option value="S" data-text="superlative">superlative</option>
+                        </select>
+                    </div>
+
+
+                    <div id="tensePicker" class="hidden" style="float:left;margin-right:20px;">
+                        <label for="selectTense" style="display:block;" data-text="tenseLabel">Tense:</label>
+                        <select id="selectTense" name="tense" style="display:block;">
+                            <option value="*" data-text="undefined" selected>undefined</option>
+                            <option value="-" data-text="varyByRow">vary by row</option>
+                            <option value="|" data-text="varyByColumn">vary by column</option>
+                            <option value="P" data-text="present">present</option>
+                            <option value="p" data-text="past">past</option>
+                        </select>
+                    </div>
+
+                    <div id="moodPicker" class="hidden" style="float:left;margin-right:20px;">
+                        <label for="selectMood" style="display:block;" data-text="moodLabel">Mood:</label>
+                        <select id="selectMood" name="mood" style="display:block;">
+                            <option value="*" data-text="undefined" selected>undefined</option>
+                            <option value="-" data-text="varyByRow">vary by row</option>
+                            <option value="|" data-text="varyByColumn">vary by column</option>
+                            <option value="I" data-text="indicative">indicative</option>
+                            <option value="S" data-text="subjunctive">subjunctive</option>
+                        </select>
+                    </div>
+
+                    <div id="voicePicker" class="hidden" style="float:left;margin-right:20px;">
+                        <label for="selectVoice" style="display:block;" data-text="voiceLabel">Voice:</label>
+                        <select id="selectVoice" name="voice" style="display:block;">
+                            <option value="*" data-text="undefined" selected>undefined</option>
+                            <option value="-" data-text="varyByRow">vary by row</option>
+                            <option value="|" data-text="varyByColumn">vary by column</option>
+                            <option value="A" data-text="active">active</option>
+                            <option value="M" data-text="mediopassive">mediopassive</option>
+                        </select>
+                    </div>
+
+                    <div id="verbTypePicker" class="hidden" style="float:left;margin-right:20px;">
+                        <label for="selectVerbType" style="display:block;" data-text="verbTypeLabel">Non-finite verb form:</label>
+                        <select id="selectVerbType" name="verbType" style="display:block;">
+                            <option value="*" data-text="undefined" selected>undefined</option>
+                            <option value="-" data-text="varyByRow">vary by row</option>
+                            <option value="|" data-text="varyByColumn">vary by column</option>
+                            <option value="I" data-text="impersonal">impersonal</option>
+                            <option value="i" data-text="infinitive">infinitive</option>
+                            <option value="P" data-text="presentParticiple">present participle</option>
+                            <option value="p" data-text="pastParticiple">past participle</option>
+                            <option value="S" data-text="supine">supine</option>
+                            <option value="!" data-text="imperative">imperative</option>
+                            <option value="O" data-text="optative">optative</option>
+                            <option value="Q" data-text="questionForm">question form</option>
+                        </select>
+                    </div>
+
+                    <div id="impersonalSubjectPicker" class="hidden" style="float:left;margin-right:20px;">
+                        <label for="selectImpersonalSubject" style="display:block;" data-text="impersonalSubjectLabel">Impersonal subject:</label>
+                        <select id="selectImpersonalSubject" name="impersonalSubject" style="display:block;">
+                            <option value="*" data-text="undefined" selected>undefined</option>
+                            <option value="-" data-text="varyByRow">vary by row</option>
+                            <option value="|" data-text="varyByColumn">vary by column</option>
+                            <option value="A" data-text="accusativeSubject">accusative subject</option>
+                            <option value="D" data-text="dativeSubject">dative subject</option>
+                            <option value="G" data-text="genitiveSubject">genitive subject</option>
+                            <option value="d" data-text="dummySubject">dummy subject</option>
+                        </select>
+                    </div>
+
+                    <div id="clippedImperativePicker" class="hidden" style="float:left;margin-right:20px;">
+                        <label for="selectClippedImperative" style="display:block;" data-text="clippedImperativeLabel">Clipped imperative:</label>
+                        <select id="selectClippedImperative" name="clippedImperative" style="display:block;">
+                            <option value="*" data-text="undefined" selected>undefined</option>
+                            <option value="-" data-text="varyByRow">vary by row</option>
+                            <option value="|" data-text="varyByColumn">vary by column</option>
+                            <option value="C" data-text="clippedImperative">clipped imperative</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="analyzeContainer" class="form-group">
+                    <input type="submit" id="analyzeButton" value="Analyze" class="hidden">
+                    <div id="loader" class="loader hidden"></div>
+                </div>
+            </form>
+        </div>
+        <div class="tables" id="tables"></div>
+        <footer class="footer">
+            <small>
+                For questions or comments, contact me at tonicsemailaddress@gmail.com.
+                This tool is released under a
+                <a href="https://creativecommons.org/licenses/by-sa/4.0/" target='_blank'>CC BY-SA 4.0</a>
+                license.<br>
+                The inflection data is adapted from
+                <a href="https://bin.arnastofnun.is" target='_blank'>
+                    <i>The Database of Icelandic Morphology</i>
+                </a>
+                (DIM), also known as
+                <a href="https://bin.arnastofnun.is" target='_blank'>
+                    <i>Beygingarlýsing íslensks nútímamáls</i>
+                </a>
+                (BÍN), by the Árni Magnússon Institute for Icelandic Studies.
+                The author and editor of DIM is Kristín Bjarnadóttir.
+                <a href="https://creativecommons.org/licenses/by-sa/4.0/" target='_blank'>CC BY-SA 4.0</a>.<br>
+                The data has been filtered, reformatted and augmented with frequency data.
+                The head words and inflectional forms themselves remain unchanged.<br>
+                The frequency data is adapted from
+                <a href="https://repository.clarin.is/repository/xmlui/handle/20.500.12537/314" target='_blank'>
+                    <i>Frequency lists for Icelandic</i>
+                </a> 
+                by Þórunn Arnardóttir and Anton Karl Ingason.
+                <a href="https://creativecommons.org/licenses/by/4.0/" target='_blank'>CC BY 4.0</a>.
+                The frequency list used is based on the
+                <a href="https://repository.clarin.is/repository/xmlui/handle/20.500.12537/254" target='_blank'>
+                    <i>Icelandic Gigaword Corpus</i>
+                </a>
+                (IGC-2022) by Starkaður Barkarson et al.
+            </small>
+        </footer>
+    </div>
+
+    <script>
+        let lang = localStorage.getItem('language') || 'en';
+        document.getElementById(`lang-${lang}`).checked = 'checked';
+        setLanguage(lang, document);
+    </script>
+</body>
+</html>

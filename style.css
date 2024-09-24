@@ -1,0 +1,141 @@
+.hidden {
+    display: none;
+}
+
+h1 {
+    margin-left: 10px;
+}
+
+select {
+    margin: 2px;
+}
+
+.viewButton {
+    width: 97%;
+    margin: 2px;
+}
+
+.viewButton::first-letter {
+    text-transform: capitalize;
+}
+
+#wordClassPicker {
+    margin-bottom: 20px;
+}
+
+#viewText {
+    padding-top: .5px;
+    padding-bottom: 5px;
+    padding-left: 2px;
+}
+
+#analyzeContainer {
+    display: flex;
+    margin: 10px;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-areas:
+        'langs header info'
+        'menu main info'
+        'menu tables tables'
+        'menu footer footer';
+    grid-template-columns: 210px 1fr 42%;
+    grid-template-rows: 100px auto 1fr auto;
+}
+
+.loader {
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #3498db;
+    border-radius: 50%;
+    width: 12px;
+    height: 12px;
+    animation: spin 2s linear infinite;
+    margin-left: 5px;
+    float: left;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.langs {
+    grid-area: langs;
+    padding: 20px;
+    background-color: lightblue;
+}
+
+.header {
+    grid-area: header;
+}
+
+.menu {
+    grid-area: menu;
+    background-color: lightblue;
+    padding-left: 2px;
+}
+
+.info {
+    grid-area: info;
+    background-color: lightblue;
+    padding: 10px;
+}
+
+.main {
+    grid-area: main;
+    margin-left: 10px;
+}
+
+.footer {
+    grid-area: footer;
+    text-align: center;
+    margin-left: 100px;
+    margin-right: 100px;
+    margin-top: 50px;
+    margin-bottom: 10px;
+}
+
+table, th, td {
+    border: 1px solid black;
+    border-collapse: collapse;
+}
+
+.tables {
+    grid-area: tables;
+}
+
+.tableBox {
+    margin: 10px;
+}
+
+table {
+    margin: 10px;
+}
+
+caption {
+    caption-side: bottom;
+    text-align: left;
+}
+
+#tables {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+th {
+    text-align: left;
+    padding: 2px;
+}
+
+td {
+    text-align: left;
+    padding: 2px;
+}

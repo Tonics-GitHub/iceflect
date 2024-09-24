@@ -1,0 +1,953 @@
+
+const grammaticalCase = "case";
+const person = "person";
+const number = "number";
+const definiteness = "definiteness";
+const gender = "gender";
+const degree = "degree";
+const tense = "tense";
+const mood = "mood";
+const voice = "voice";
+const verbType = "verbType";
+const impersonalSubject = "impersonalSubject";
+const clippedImperative = "clippedImperative";
+
+const categories = [
+    grammaticalCase,
+    person,
+    number,
+    definiteness,
+    gender,
+    degree,
+    tense,
+    mood,
+    voice,
+    verbType,
+    impersonalSubject,
+    clippedImperative
+];
+
+const availableCategories = {
+    noun: [grammaticalCase, number, definiteness],
+    masculineNoun: [grammaticalCase, number, definiteness],
+    feminineNoun: [grammaticalCase, number, definiteness],
+    neuterNoun: [grammaticalCase, number, definiteness],
+    adjective: [grammaticalCase, number, gender, definiteness, degree],
+    verb: [
+        grammaticalCase, person, number, gender, definiteness, degree,
+        tense, mood, voice, verbType, impersonalSubject, clippedImperative
+    ],
+    numeral: [grammaticalCase, number, gender],
+    ordinal: [grammaticalCase, number, gender],
+    personalPronoun: [grammaticalCase, number],
+    reflexivePronoun: [grammaticalCase],
+    otherPronoun: [grammaticalCase, number, gender],
+    definiteArticle: [grammaticalCase, number, gender],
+    adverb: [degree]
+}
+
+const categoryValues = [
+    ["N", "A", "D", "G"],
+    ["1", "2", "3"],
+    ["S", "P"],
+    ["I", "D"],
+    ["M", "F", "N"],
+    ["P", "C", "S"],
+    ["P", "p"],
+    ["I", "S"],
+    ["A", "M"],
+    ["I", "i", "P", "p", "S", "!", "O", "Q"],
+    ["A", "D", "G", "d"],
+    ["C"]
+]
+
+const categoryValueDataText = [
+    {"N": "nom", "A": "acc", "D": "dat", "G": "gen"},
+    {"1": "fstP", "2": "sndP", "3": "trdP"},
+    {"S": "sg", "P": "pl"},
+    {"I": "indef", "D": "def"},
+    {"M": "masc", "F": "fem", "N": "neu"},
+    {"P": "pos", "C": "comp", "S": "super"},
+    {"P": "pres", "p": "pst"},
+    {"I": "ind", "S": "subj"},
+    {"A": "act", "M": "mid"},
+    {"I": "impers", "i": "inf", "P": "presPart", "p": "PstPart", "S": "sup", "!": "imp", "O": "opt", "Q": "ques"},
+    {"A": "accSub", "D": "datSub", "G": "genSub", "d": "dummySub"},
+    {"C": "clipped"}
+]
+
+let selectedWordClass = ""
+let dataRead = {};
+
+function selectWordClass(wordClass) {
+    for (const category of categories) {
+        const featureElement = document.getElementById(category + "Picker");
+        if (availableCategories[wordClass].includes(category)) {
+            featureElement.classList.remove("hidden");
+        } else {
+            featureElement.children[1].value = "*";
+            featureElement.classList.add("hidden");
+        }
+    }
+    selectedWordClass = wordClass;
+    document.getElementById("analyzeButton").classList.remove("hidden");
+}
+
+function allCombinationsRec(char, tablePattern, idx, currComb, combs) {
+    if (idx == -1) {
+        combs.push(currComb);
+        return;
+    }
+    if (tablePattern.charAt(idx) != char) {
+        allCombinationsRec(char, tablePattern, idx - 1, "*" + currComb, combs);
+    } else {
+        for (const value of categoryValues[idx]) {
+            allCombinationsRec(char, tablePattern, idx - 1, value + currComb, combs);
+        }
+    }
+}
+
+function allRowCombinations(tablePattern) {
+    allCombs = [];
+    allCombinationsRec("-", tablePattern, 11, "", allCombs);
+    return allCombs;
+}
+
+function allColCombinations(tablePattern) {
+    allCombs = [];
+    allCombinationsRec("|", tablePattern, 11, "", allCombs);
+    return allCombs;
+}
+
+function combineInflections(inflection1, inflection2) {
+    inflection = "";
+    for (let i = 0; i < 12; i++) {
+        char1 = inflection1.charAt(i);
+        if (char1 == "*" || char1 == "-" || char1 == "|") {
+            inflection += inflection2.charAt(i);
+        } else {
+            inflection += char1;
+        }
+    }
+    return inflection;
+}
+
+function isPatternCompatibleWith(pattern, tablePattern) {
+    for (let i = 0; i < 12; i++) {
+        c = pattern.charAt(i);
+        tc = tablePattern.charAt(i);
+        if (tc != "-" && tc != "|" && c != tc && c != "*") {
+            return false;
+        }
+    }
+    return true;
+}
+
+function minLength(forms) {
+    let min = Number.MAX_VALUE;
+    for (form of forms) {
+        if (form.length < min) {
+            min = form.length;
+        }
+    }
+    return min;
+}
+
+function makeStem(forms, minLen) {
+    let stem = "";
+    for (let i = 0; i < minLen; i++) {
+        let allSame = true;
+        const c = forms[0].charAt(i).toLowerCase();
+        for (let j = 1; j < forms.length; j++) {
+            if (c != forms[j].charAt(i).toLowerCase()) {
+                allSame = false;
+                break;
+            }
+        }
+        if (allSame) {
+            stem += c;
+        } else {
+            stem += "*";
+        }
+    }
+    return stem.replace(/\*+$/, "");
+}
+
+function isJVOrVowel(char) {
+    return "aáeéiíjoóuúvyýæö".indexOf(char.toLowerCase()) > -1;
+}
+
+function areAllJVOrVowelAt(forms, idx) {
+    for (const [_, form] of Object.entries(forms)) {
+        if (!isJVOrVowel(form.charAt(idx))) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function combineAt(forms, idx) {
+    let altForms = {};
+    let changed = false;
+    for (const [inflection, form] of Object.entries(forms)) {
+        if (form.length > idx + 1 && isJVOrVowel(form.charAt(idx + 1), idx)) {
+            changed = true;
+            const combinedChar = String.fromCharCode(form.charCodeAt(idx) * 256 + form.charCodeAt(idx + 1));
+            const altForm = form.substring(0, idx) + combinedChar + form.substring(idx + 2);
+            altForms[inflection] = altForm;
+        } else {
+            altForms[inflection] = form;
+        }
+    }
+    if (changed) {
+        return altForms;
+    }
+    return null;
+}
+
+function decode(affix) {
+    for (let i = 0; i < affix.length; i++) {
+        const charCode = affix.charCodeAt(i);
+        if (charCode > 255) {
+            const decoded = String.fromCharCode(charCode / 256) + String.fromCharCode(charCode % 256);
+            return affix.substring(0, i) + decoded + affix.substring(i + 1);
+        }
+    }
+    return affix;
+}
+
+function analyze(lexeme, tablePattern) {
+    let forms = Object.fromEntries(Object.entries(lexeme.forms).filter(
+        ([pattern, _]) => isPatternCompatibleWith(pattern, tablePattern)
+    ));
+    if (Object.keys(forms).length === 0) {
+        return {};
+    }
+    const formValues = Object.values(forms);
+    const minLen = minLength(formValues);
+    let stem = makeStem(formValues, minLen);
+    let stemLen = stem.replaceAll("*", "").length;
+    let betterForms = null;
+    for (let i = 0; i < minLen; i++) {
+        if (areAllJVOrVowelAt(forms, i)) {
+            const altForms = combineAt(forms, i);
+            if (altForms) {
+                let altStem = makeStem(Object.values(altForms), minLen);
+                let altStemLen = altStem.replaceAll("*", "").length;
+                if (altStemLen > stemLen) {
+                    stem = altStem;
+                    stemLen = altStemLen;
+                    betterForms = altForms;
+                }
+            }
+        }
+    }
+    if (betterForms != null) {
+        forms = betterForms;
+    }
+
+    /*forms = Object.fromEntries(Object.entries(forms).filter(
+        ([pattern, _]) => isPatternCompatibleWith(pattern, tablePattern)
+    ));*/
+
+    pattern = {};
+    for (const [inflection, form] of Object.entries(forms)) {
+        const formLC = form.toLowerCase();
+        let affix = "";
+        for (let i = 0; i < stem.length; i++) {
+            if (stem.charAt(i) == "*") {
+                affix += formLC.charAt(i);
+            } else {
+                affix += "*";
+            }
+        }
+        affix += form.substring(stem.length);
+        affix = affix.replace(/^\*+/, "").replaceAll(/\*+/g, "*");
+        if (betterForms != null) {
+            affix = decode(affix);
+        }
+        pattern[inflection] = affix;
+    }
+
+    return pattern;
+}
+
+function analyzeAll(lexemes, tablePattern) {
+    patterns = new Map();
+    for (const lexeme of lexemes) {
+        const patternObj = analyze(lexeme, tablePattern);
+        const pattern = JSON.stringify(patternObj, Object.keys(patternObj).sort());
+        if (patterns.has(pattern)) {
+            patternInfo = patterns.get(pattern);
+            patternInfo.lexemes.push(lexeme);
+            patternInfo.freq += lexeme.freq;
+        } else {
+            patterns.set(pattern, {freq: lexeme.freq, lexemes: [lexeme]});
+        }
+    }
+    for (const patternInfo of patterns.values()) {
+        patternInfo.lexemes.sort((a, b) => b.freq - a.freq);
+    }
+    return [...patterns.entries()].sort((a, b) => b[1].freq - a[1].freq);
+}
+
+function inflectionAbbrev(inflection) {
+    let abbrevs = [];
+    for (let i = 0; i < 12; i++) {
+        const c = inflection.charAt(i);
+        if (c != "*") {
+            abbrevs.push(categoryValueDataText[i][c]);
+        }
+    }
+    return abbrevs;
+}
+
+function findCompatible(inflection, pattern) {
+    for (const pInflection in pattern) {
+        if (isPatternCompatibleWith(pInflection, inflection)) {
+            return pattern[pInflection];
+        }
+    }
+    return null;
+}
+
+function tableStr(pattern, patternInfo, tablePattern, totalFreq) {
+    let table = "<table>";
+    const freqPercent = (patternInfo.freq / totalFreq * 100)
+    const freqStr = freqPercent.toLocaleString(document.documentElement.lang, {maximumFractionDigits: 2});
+    table += "<caption>(" + freqStr + "%)<br>";
+    for (let i = 0; i < patternInfo.lexemes.length; i++) {
+        if (i == 20) {
+            table += "…";
+            break;
+        }
+        const lemma = patternInfo.lexemes[i].lemma
+        table += "<a href='https://bin.arnastofnun.is/leit/" + lemma + "' target='_blank'>" + lemma + "</a> ";
+        //table += "(" + patternInfo.lexemes[i].freq + ") ";
+    }
+    table += "</caption>";
+    const rowInflections = allRowCombinations(tablePattern);
+    const colInflections = allColCombinations(tablePattern);
+    if (colInflections.length > 1 && rowInflections.length > 1) {
+        table += "<tr><td>";
+    }
+    if (colInflections.length > 1) {
+        if (rowInflections.length == 1) {
+            table += "<tr>";
+        }
+        for (const colInflection of colInflections) {
+            table += "<th>";
+            for (abbrev of inflectionAbbrev(colInflection)) {
+                table += "<span data-text='" + abbrev + "'></span> ";
+            }
+            table += "</th>";
+        }
+        table += "</tr>";
+    }
+    for (const rowInflection of rowInflections) {
+        table += "<tr>";
+        if (rowInflections.length > 1) {
+            table += "<th>";
+            for (abbrev of inflectionAbbrev(rowInflection)) {
+                table += "<span data-text='" + abbrev + "'></span> ";
+            }
+            table += "</th>";
+        }
+        for (const colInflection of colInflections) {
+            inflection = combineInflections(tablePattern, combineInflections(rowInflection, colInflection));
+            const affix = findCompatible(inflection, pattern);
+            if (affix !== null) {
+                const affixStr = affix.replace(/([^\*]*$)/, "-$1").replaceAll(/\*/g, "…");
+                const affixParts = affixStr.split("-");
+                table += "<td>" + affixStr;
+            } else {
+                table += "<td>N/A";
+            }
+        }
+        table += "</tr>";
+    }
+    table += "</table>";
+    return table
+}
+
+function showPatterns(patterns, tablePattern) {
+    let totalFreq = 0;
+    for (const [_, patternInfo] of patterns) {
+        totalFreq += patternInfo.freq;
+    }
+    let tables = "";
+    for (const [pattern, patternInfo] of patterns) {
+        tables += tableStr(JSON.parse(pattern), patternInfo, tablePattern, totalFreq);
+    }
+    const tablesElement = document.getElementById("tables");
+    tablesElement.innerHTML = tables;
+    //navigator.clipboard.writeText(tables);
+    //console.log("created tables");
+    setLanguage(document.documentElement.lang, tablesElement);
+    //console.log("set language");
+}
+
+function tableComplexity(tablePattern) {
+    let nbrRows = 1;
+    let nbrCols = 1;
+    for (let i = 0; i < 12; i++) {
+        const char = tablePattern.charAt(i);
+        if (char == "-") {
+            nbrRows *= categoryValues[i].length;
+        } else if (char == "|") {
+            nbrCols *= categoryValues[i].length;
+        }
+    }
+    return (nbrRows + 1) * (nbrCols + 1);
+}
+
+async function getJson(wordClass) {
+    if (dataRead[wordClass]) {
+        return dataRead[wordClass];
+    }
+    const json = await fetch(`data/${wordClass}.json`).then((response) => response.json());
+    dataRead[wordClass] = json;
+    return json;
+}
+
+async function analyzeAndShowPatterns(formData) {
+    formDataObj = Object.fromEntries(formData);
+    const tablePattern = categories.map((c) => formDataObj[c]).join("");
+    if (tableComplexity(tablePattern) >= 256) {
+        alert("The tables are too complex. Try changing a 'vary by row/column' setting to a single feature.");
+        return;
+    }
+    document.getElementById("loader").classList.remove("hidden");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    let json;
+    if (selectedWordClass == "noun") {
+        mascJson = await getJson("masculineNoun");
+        femJson = await getJson("feminineNoun");
+        neuJson = await getJson("neuterNoun");
+        json = mascJson.concat(femJson).concat(neuJson);
+    } else {
+        json = await getJson(selectedWordClass);
+    }
+    //console.log("read json");
+    const patterns = analyzeAll(json, tablePattern);
+    //console.log("analyzed");
+    showPatterns(patterns, tablePattern);
+    document.getElementById("loader").classList.add("hidden");
+}
+
+function updateSettings(wordClass, features) {
+    document.getElementById("wordClass").value = wordClass;
+    selectWordClass(wordClass);
+    for (const [category, value] of Object.entries(features)) {
+        document.getElementById(category + "Picker").children[1].value = value;
+    }
+}
+
+async function viewPrecomputed(settings) {
+    switch (settings) {
+        case "noun":
+            updateSettings("noun", { case: "-", number: "|", definiteness: "|" });
+            break;
+        case "indefNoun":
+            updateSettings("noun", { case: "-", number: "|", definiteness: "I" });
+            break;
+        case "masculineNoun":
+            updateSettings("masculineNoun", { case: "-", number: "|", definiteness: "|" });
+            break;
+        case "indefMasculineNoun":
+            updateSettings("masculineNoun", { case: "-", number: "|", definiteness: "I" });
+            break;
+        case "feminineNoun":
+            updateSettings("feminineNoun", { case: "-", number: "|", definiteness: "|" });
+            break;
+        case "indefFeminineNoun":
+            updateSettings("feminineNoun", { case: "-", number: "|", definiteness: "I" });
+            break;
+        case "neuterNoun":
+            updateSettings("neuterNoun", { case: "-", number: "|", definiteness: "|" });
+            break;
+        case "indefNeuterNoun":
+            updateSettings("neuterNoun", { case: "-", number: "|", definiteness: "I" });
+            break;
+        case "adjective":
+            updateSettings("adjective", { case: "-", number: "-", definiteness: "-", gender: "|", degree: "|" });
+            break;
+        case "strongPositiveAdjective":
+            updateSettings("adjective", { case: "-", number: "-", definiteness: "I", gender: "|", degree: "P" });
+            break;
+        case "activeVerb":
+            updateSettings("verb", { case: "*", person: "-", number: "-", gender: "*", definiteness: "*", degree: "*",
+                tense: "|", mood: "|", voice: "A", verbType: "*", impersonalSubject: "*", clippedImperative: "*" });
+            break;
+        case "activeIndicativeVerb":
+            updateSettings("verb", { case: "*", person: "-", number: "-", gender: "*", definiteness: "*", degree: "*",
+                tense: "|", mood: "I", voice: "A", verbType: "*", impersonalSubject: "*", clippedImperative: "*" });
+            break;
+        case "numeral":
+            updateSettings("numeral", { case: "-", number: "-", gender: "|" });
+            break;
+        case "ordinal":
+            updateSettings("ordinal", { case: "-", number: "-", gender: "|" });
+            break;
+        case "persPronoun":
+            updateSettings("personalPronoun", { case: "-", number: "|" });
+            break;
+        case "refPronoun":
+            updateSettings("reflexivePronoun", { case: "-" });
+            break;
+        case "otherPronoun":
+            updateSettings("otherPronoun", { case: "-", number: "-", gender: "|" });
+            break;
+        case "defArticle":
+            updateSettings("definiteArticle", { case: "-", number: "-", gender: "|" });
+            break;
+        case "adverb":
+            updateSettings("adverb", { degree: "|" });
+            break;
+    }
+    //console.log("html");
+    const html = await fetch(`precomputedTables/${settings}.html`)
+            .then((response) => response.text());
+    
+    //console.log("lang");
+    const tablesElement = document.getElementById("tables");
+    tablesElement.innerHTML = html;
+    setLanguage(document.documentElement.lang, tablesElement);
+    //console.log("done");
+}
+
+function setLanguage(lang, node) {
+    const textElements = node.querySelectorAll("[data-text]");
+    for (const textElement of textElements) {
+        textElement.innerHTML = translations[lang][textElement.getAttribute("data-text")];
+    }
+    document.getElementById("analyzeButton").setAttribute("value", translations[lang]["analyze"]);
+    localStorage.setItem("language", lang);
+    document.documentElement.lang = lang;
+}
+
+const translations = {
+    en: {
+        title: "Icelandic inflectional patterns",
+        wordClassToAnalyze: "Word class to analyze:",
+        selectAWordClass: "Select a word class",
+        viewPrecomputedTables: "View precomputed tables:",
+
+        noun: "noun",
+        masculineNoun: "masculine noun",
+        feminineNoun: "feminine noun",
+        neuterNoun: "neuter noun",
+        adjective: "adjective",
+        verb: "verb",
+        numeral: "numeral",
+        ordinal: "ordinal",
+        personalPronoun: "personal pronoun",
+        reflexivePronoun: "reflexive pronoun",
+        otherPronoun: "other pronoun",
+        definiteArticle: "definite article",
+        adverb: "adverb",
+
+        indefNoun: "indefinite noun",
+        indefMasculineNoun: "indefinite masculine noun",
+        indefFeminineNoun: "indefinite feminine noun",
+        indefNeuterNoun: "indefinite neuter noun",
+        strongPositiveAdjective: "Strong positive adjective",
+        activeVerb: "Active verb",
+        activeIndicativeVerb: "Active indicative verb",
+
+        undefined: "undefined",
+        varyByRow: "vary by row",
+        varyByColumn: "vary by column",
+
+        caseLabel: "Case:",
+        personLabel: "Person:",
+        numberLabel: "Number:",
+        definitenessLabel: "Definiteness:",
+        genderLabel: "Gender:",
+        degreeLabel: "Degree of comparison:",
+        tenseLabel: "Tense:",
+        moodLabel: "Mood:",
+        voiceLabel: "Voice:",
+        verbTypeLabel: "Non-finite verb form:",
+        impersonalSubjectLabel: "Impersonal subject:",
+        clippedImperativeLabel: "Clipped imperative:",
+
+        nominative: "nominative",
+        accusative: "accusative",
+        dative: "dative",
+        genitive: "genitive",
+        first: "1st",
+        second: "2nd",
+        third: "3rd",
+        singular: "singular",
+        plural: "plural",
+        definite: "definite",
+        indefinite: "indefinite",
+        masculine: "masculine",
+        feminine: "feminine",
+        neuter: "neuter",
+        positive: "positive",
+        comparative: "comparative",
+        superlative: "superlative",
+        present: "present",
+        past: "past",
+        indicative: "indicative",
+        subjunctive: "subjunctive",
+        active: "active",
+        mediopassive: "mediopassive",
+        impersonal: "impersonal",
+        infinitive: "infinitive",
+        presentParticiple: "present participle",
+        pastParticiple: "past participle",
+        supine: "supine",
+        imperative: "imperative",
+        optative: "optative",
+        questionForm: "question form",
+        accusativeSubject: "accusative subject",
+        dativeSubject: "dative subject",
+        genitiveSubject: "genitive subject",
+        dummySubject: "dummy subject",
+        clippedImperative: "clipped imperative",
+
+        analyze: "Analyze",
+
+        nom: "Nom.",
+        acc: "Acc.",
+        dat: "Dat.",
+        gen: "Gen.",
+        fstP: "1st",
+        sndP: "2nd",
+        trdP: "3rd",
+        sg: "Sg.",
+        pl: "Pl.",
+        indef: "Indef.",
+        def: "Def.",
+        masc: "Masc.",
+        fem: "Fem.",
+        neu: "Neu.",
+        pos: "Pos.",
+        comp: "Comp.",
+        super: "Super.",
+        pres: "Pres.",
+        pst: "Pst.",
+        ind: "Ind.",
+        subj: "Subj.",
+        act: "Act.",
+        mid: "Mid.",
+        impers: "Impers.",
+        inf: "Inf.",
+        presPart: "Pres. part.",
+        pstPart: "Pst. part.",
+        sup: "Sup.",
+        imp: "Imp.",
+        opt: "Opt.",
+        ques: "Ques.",
+        accSub: "Acc. sub.",
+        datSub: "Dat. sub.",
+        genSub: "Gen. sub.",
+        dummySub: "Dummy sub.",
+        clipped: "Clipped",
+
+        info: "On this page you can define and view tables of inflectional patterns for Icelandic words. " +
+              "Start with clicking some of the buttons on the left to view precomputed tables. " +
+              "This should give you an idea about how to use the drop-down menus to define " +
+              "your own table structures. " +
+              "The word classes and inflectional categories used can be found " +
+              "<a href=\"https://bin.arnastofnun.is/DMII/infl-system/ target='_blank'\">here</a>. " +
+              "A list of the possible inflections can be found " +
+              "<a href=\"https://bin.arnastofnun.is/DMII/LTdata/tagset/ target='_blank'\">here</a>. " +
+              "Note that this page consistently uses the terms \"indefinite\" and \"definite\" to refer " +
+              "to the strong and weak forms of adjectives respectively. Dealing with verb conjugation, " +
+              "especially when the last three inflectional categories are involved, " +
+              "can currently be clunky and inflexible. This will hopefully be fixed in the future.<br>" +
+
+              "The affixes of a pattern consist of characters that differ between the relevant inflectional " +
+              "forms, i.e. those described in the tables. This means that the resulting affixes may change " +
+              "depending on how the tables are defined. " +
+              "<b>The analysis is very imperfect and should be taken with a grain of salt.</b> " +
+              "The patterns are sorted in order of frequency of which a word adhering to the pattern " +
+              "appears in Icelandic texts, out of all words in the word class. This is the percentage found " +
+              "under the tables. The words under that are the 20 most common words adhering to the pattern."
+    },
+    is: {
+        title: "Íslensk beygingarmynstur",
+        wordClassToAnalyze: "Orðflokkur til að greina:",
+        selectAWordClass: "Veldu orðflokk",
+        viewPrecomputedTables: "Sýn fyrirútreiknaðar töflur:",
+
+        noun: "nafnorð",
+        masculineNoun: "karlkynsnafnorð",
+        feminineNoun: "kvenkynsnafnorð",
+        neuterNoun: "hvorugkynsnafnorð",
+        adjective: "lýsingarorð",
+        verb: "sagnorð",
+        numeral: "töluorð",
+        ordinal: "raðtal",
+        personalPronoun: "persónufornafn",
+        reflexivePronoun: "afturbeygt fornafn",
+        otherPronoun: "annað fornafn",
+        definiteArticle: "lausur greinir",
+        adverb: "atviksorð",
+
+        indefNoun: "nafnorð án greinis",
+        indefMasculineNoun: "karlkynsnafnorð án greinis",
+        indefFeminineNoun: "kvenkynsnafnorð án greinis",
+        indefNeuterNoun: "hvorugkynsnafnorð án greinis",
+        strongPositiveAdjective: "Sterkt frumstig lýsingarorð",
+        activeVerb: "germyndarsögn",
+        activeIndicativeVerb: "germyndarframsögusögn",
+
+        undefined: "óskilgreint",
+        varyByRow: "breyt eftir röð",
+        varyByColumn: "breyt eftir dálki",
+
+        caseLabel: "Fall:",
+        personLabel: "Persóna:",
+        numberLabel: "Tala:",
+        definitenessLabel: "Ákveðni:",
+        genderLabel: "Kyn:",
+        degreeLabel: "Stig:",
+        tenseLabel: "Tíð:",
+        moodLabel: "Háttur:",
+        voiceLabel: "Mynd:",
+        verbTypeLabel: "Aðrar sagnbeygingar:",
+        impersonalSubjectLabel: "Ópersónuleg sagnbeyging:",
+        clippedImperativeLabel: "Stýfður boðháttur:",
+
+        nominative: "nefnifall",
+        accusative: "þolfall",
+        dative: "þágufall",
+        genitive: "eignarfall",
+        first: "1.",
+        second: "2.",
+        third: "3.",
+        singular: "eintala",
+        plural: "fleirtala",
+        definite: "með greini",
+        indefinite: "án greinis",
+        masculine: "karlkyn",
+        feminine: "kvenkyn",
+        neuter: "hvorugkyn",
+        positive: "frumstig",
+        comparative: "miðstig",
+        superlative: "efsta stig",
+        present: "nútið",
+        past: "þátið",
+        indicative: "framsöguháttur",
+        subjunctive: "viðtengingarháttur",
+        active: "germynd",
+        mediopassive: "miðmynd",
+        impersonal: "ópersónulegt",
+        infinitive: "nafnháttur",
+        presentParticiple: "lýsingarháttur nútíðar",
+        pastParticiple: "lýsingarháttur þátíðar",
+        supine: "sagnbót",
+        imperative: "boðháttur",
+        optative: "óskháttur",
+        questionForm: "spurnarmynd",
+        accusativeSubject: "þolfallsfrumlag",
+        dativeSubject: "þágufallsfrumlag",
+        genitiveSubject: "egnarfallsfrumlag",
+        dummySubject: "gervifrumlag",
+        clippedImperative: "stýfður boðháttur",
+
+        analyze: "Grein",
+
+        nom: "Nf.",
+        acc: "Þf.",
+        dat: "Þgf.",
+        gen: "Ef.",
+        fstP: "1.",
+        sndP: "2.",
+        trdP: "3.",
+        sg: "Et.",
+        pl: "Ft.",
+        indef: "án gr.",
+        def: "með gr.",
+        masc: "Kk.",
+        fem: "Kvk.",
+        neu: "Hk.",
+        pos: "Frums.",
+        comp: "Miðs.",
+        super: "Efsta",
+        pres: "Nt.",
+        pst: "Þt.",
+        ind: "Fsh.",
+        subj: "Vth.",
+        act: "Germ.",
+        mid: "Miðm.",
+        impers: "Ópers.",
+        inf: "Nh.",
+        presPart: "Lh. nt.",
+        pstPart: "Lh. þt.",
+        sup: "Sagnb.",
+        imp: "Bh.",
+        opt: "Óh.",
+        ques: "Spurn.",
+        accSub: "Ópers. þff.",
+        datSub: "Ópers. þgff.",
+        genSub: "Ópers. eff.",
+        dummySub: "Ópers. gf.",
+        clipped: "Stý. bh.",
+
+        info: "On this page you can define and view tables of inflectional patterns for Icelandic words. " +
+              "Start with clicking some of the buttons on the left to view precomputed tables. " +
+              "This should give you an idea about how to use the drop-down menus to define " +
+              "your own table structures. " +
+              "The word classes and inflectional categories used can be found " +
+              "<a href=\"https://bin.arnastofnun.is/DMII/infl-system/ target='_blank'\">here</a>. " +
+              "A list of the possible inflections can be found " +
+              "<a href=\"https://bin.arnastofnun.is/DMII/LTdata/tagset/ target='_blank'\">here</a>. " +
+              "Note that this page consistently uses the terms \"indefinite\" and \"definite\" to refer " +
+              "to the strong and weak forms of adjectives respectively. Dealing with verb conjugation, " +
+              "especially when the last three inflectional categories are involved, " +
+              "can currently be clunky and inflexible. This will hopefully be fixed in the future.<br>" +
+              "The affixes of a pattern consist of characters that differ between the relevant inflectional " +
+              "forms, i.e. those described in the tables. This means that the resulting affixes may change " +
+              "depending on how the tables are defined. " +
+              "<b>The analysis is very imperfect and should be taken with a grain of salt.</b> " +
+              "The patterns are sorted in order of frequency of which a word adhering to the pattern " +
+              "appears in Icelandic texts, out of all words in the word class. This is the percentage found " +
+              "under the tables. The words under that are the 20 most common words adhering to the pattern."
+    },
+    sv: {
+        title: "Isländska böjningsmönster",
+        wordClassToAnalyze: "Ordklass att analysera:",
+        selectAWordClass: "Välj en ordklass",
+        viewPrecomputedTables: "Visa förberäknade tabeller:",
+
+        noun: "substantiv",
+        masculineNoun: "maskulint substantiv",
+        feminineNoun: "feminint substantiv",
+        neuterNoun: "neutralt substantiv",
+        adjective: "adjektiv",
+        verb: "verb",
+        numeral: "kardinaltal",
+        ordinal: "ordinaltal",
+        personalPronoun: "personligt pronomen",
+        reflexivePronoun: "reflexivt pronomen",
+        otherPronoun: "annat pronomen",
+        definiteArticle: "bestämd artikel",
+        adverb: "adverb",
+
+        indefNoun: "obestämt substantivt",
+        indefMasculineNoun: "obestämt maskulint substantiv",
+        indefFeminineNoun: "obestämt feminint substantiv",
+        indefNeuterNoun: "obestämt neutralt substantiv",
+        strongPositiveAdjective: "starkt positivt adjektiv",
+        activeVerb: "aktivt verb",
+        activeIndicativeVerb: "aktivt indikativt verb",
+
+        undefined: "odefinierat",
+        varyByRow: "variera med rad",
+        varyByColumn: "variera med kolumn",
+
+        caseLabel: "Kasus:",
+        personLabel: "Person:",
+        numberLabel: "Numerus:",
+        definitenessLabel: "Bestämdhet:",
+        genderLabel: "Genus:",
+        degreeLabel: "Komparationsgrad:",
+        tenseLabel: "Tempus:",
+        moodLabel: "Modus:",
+        voiceLabel: "Diates:",
+        verbTypeLabel: "Icke-finita verbformer:",
+        impersonalSubjectLabel: "Opersonligt subjekt:",
+        clippedImperativeLabel: "Klippt imperativ:",
+
+        nominative: "nominativ",
+        accusative: "ackusativ",
+        dative: "dativ",
+        genitive: "genitiv",
+        first: "1:a",
+        second: "2:a",
+        third: "3:e",
+        singular: "singularis",
+        plural: "pluralis",
+        definite: "bestämd",
+        indefinite: "obestämd",
+        masculine: "maskulinum",
+        feminine: "femininum",
+        neuter: "neutrum",
+        positive: "positiv",
+        comparative: "komparativ",
+        superlative: "superlativ",
+        present: "presens",
+        past: "preteritum",
+        indicative: "indikativ",
+        subjunctive: "konjunktiv",
+        active: "aktiv",
+        mediopassive: "mediopassiv",
+        impersonal: "opersonlig",
+        infinitive: "infinitiv",
+        presentParticiple: "presens particip",
+        pastParticiple: "perfekt particip",
+        supine: "supinum",
+        imperative: "imperativ",
+        optative: "optativ",
+        questionForm: "frågeform",
+        accusativeSubject: "ackusativt subjekt",
+        dativeSubject: "dativt subjekt",
+        genitiveSubject: "genitivt subjekt",
+        dummySubject: "expletivt subjekt",
+        clippedImperative: "klippt imperativ",
+
+        analyze: "Analysera",
+
+        nom: "Nom.",
+        acc: "Ack.",
+        dat: "Dat.",
+        gen: "Gen.",
+        fstP: "1:a",
+        sndP: "2:a",
+        trdP: "3:e",
+        sg: "Sg.",
+        pl: "Pl.",
+        indef: "Obest.",
+        def: "Best.",
+        masc: "Mask.",
+        fem: "Fem.",
+        neu: "Neu.",
+        pos: "Pos.",
+        comp: "Komp.",
+        super: "Super.",
+        pres: "Pres.",
+        pst: "Pret.",
+        ind: "Ind.",
+        subj: "Konj.",
+        act: "Akt.",
+        mid: "Med.",
+        impers: "Impers.",
+        inf: "Inf.",
+        presPart: "Pres. part.",
+        pstPart: "Pret. part.",
+        sup: "Sup.",
+        imp: "Imp.",
+        opt: "Opt.",
+        ques: "Fråg.",
+        accSub: "Ack. sub.",
+        datSub: "Dat. sub.",
+        genSub: "Gen. sub.",
+        dummySub: "Expl. sub.",
+        clipped: "Klippt",
+
+        info: "På denna sida kan du definiera och se tableller med böjningsmönster för isländska ord. " +
+              "Börja med att klicka på knapparna till vänster för att se fördefinierade tabeller, " +
+              "vilket borde ge dig en idé om hur rullgardinsmenyerna används för att definiera egna tabeller. " +
+              "Ordklasserna och böjningskategorierna som används hittas " +
+              "<a href=\"https://bin.arnastofnun.is/DMII/infl-system/\" target='_blank'\">här</a>. " +
+              "En lista över alla möjliga böjningar hittas " +
+              "<a href=\"https://bin.arnastofnun.is/DMII/LTdata/tagset/\" target='_blank'\">här</a>. " +
+              "Notera att denna sida använder orden \"obestämd\" och \"bestämd\" för " +
+              "adjektivens starka respektive svaga former. Verbböjningen, " +
+              "framför allt de tre sista böjningskategorierna, " +
+              "kan vara klumpiga och oflexibla att använda. Detta kommer förhoppningsvis fixas så småningom.<br>" +
+              "Affixen för ett mönster består av tecken som inte skiljer sig åt mellan de relavanta " +
+              "böjningsformerna, alltså de som beskrivs av tabellerna. Detta betyder att affixen kan " +
+              "förändras beroende på hur tabellerna är definierade. " +
+              "<b>Analysen är långt ifrån perfekt och bör tas ned en nypa salt.</b> " +
+              "Mönstren sorteras efter hur ofta ett ord som följer mönstret förekommer i isländska texter, " +
+              "av alla ord i ordklassen. Detta är den procentsats som anges under tabellerna. " +
+              "Orden under det är de 20 vanligaste orden som följer mönstret."
+    }
+};
