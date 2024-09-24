@@ -47,7 +47,7 @@ form {
         'menu tables tables'
         'menu footer footer';
     grid-template-columns: 210px 1fr 42%;
-    grid-template-rows: 100px auto 1fr auto;
+    grid-template-rows: 130px auto 1fr auto;
 }
 
 .loader {
