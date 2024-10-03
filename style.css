@@ -29,6 +29,10 @@ select {
     padding-left: 2px;
 }
 
+#defectivePatterns {
+    padding-top: 5px;
+}
+
 #analyzeContainer {
     display: flex;
     margin: 10px;

@@ -91,6 +91,7 @@ function selectWordClass(wordClass) {
     }
     selectedWordClass = wordClass;
     document.getElementById("analyzeButton").classList.remove("hidden");
+    document.getElementById("defectivePatterns").classList.remove("hidden");
 }
 
 function allCombinationsRec(char, tablePattern, idx, currComb, combs) {
@@ -134,13 +135,22 @@ function combineInflections(inflection1, inflection2) {
 
 function isPatternCompatibleWith(pattern, tablePattern) {
     for (let i = 0; i < 12; i++) {
-        c = pattern.charAt(i);
-        tc = tablePattern.charAt(i);
+        const c = pattern.charAt(i);
+        const tc = tablePattern.charAt(i);
         if (tc != "-" && tc != "|" && c != tc && c != "*") {
             return false;
         }
     }
     return true;
+}
+
+function findCompatible(inflection, pattern) {
+    for (const pInflection in pattern) {
+        if (isPatternCompatibleWith(pInflection, inflection)) {
+            return pattern[pInflection];
+        }
+    }
+    return null;
 }
 
 function minLength(forms) {
@@ -272,8 +282,23 @@ function analyze(lexeme, tablePattern) {
     return pattern;
 }
 
-function analyzeAll(lexemes, tablePattern) {
-    patterns = new Map();
+function isDefective(pattern, tablePattern, lexeme) {
+    const rowInflections = allRowCombinations(tablePattern);
+    const colInflections = allColCombinations(tablePattern);
+    for (const rowInflection of rowInflections) {
+        for (const colInflection of colInflections) {
+            const inflection = combineInflections(tablePattern, combineInflections(rowInflection, colInflection));
+            const affix = findCompatible(inflection, pattern);
+            if (affix == null) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+function analyzeAll(lexemes, tablePattern, includeDefective) {
+    let patterns = new Map();
     for (const lexeme of lexemes) {
         const patternObj = analyze(lexeme, tablePattern);
         const pattern = JSON.stringify(patternObj, Object.keys(patternObj).sort());
@@ -281,7 +306,7 @@ function analyzeAll(lexemes, tablePattern) {
             patternInfo = patterns.get(pattern);
             patternInfo.lexemes.push(lexeme);
             patternInfo.freq += lexeme.freq;
-        } else {
+        } else if (includeDefective || !isDefective(patternObj, tablePattern, lexeme)) {
             patterns.set(pattern, {freq: lexeme.freq, lexemes: [lexeme]});
         }
     }
@@ -300,15 +325,6 @@ function inflectionAbbrev(inflection) {
         }
     }
     return abbrevs;
-}
-
-function findCompatible(inflection, pattern) {
-    for (const pInflection in pattern) {
-        if (isPatternCompatibleWith(pInflection, inflection)) {
-            return pattern[pInflection];
-        }
-    }
-    return null;
 }
 
 function tableStr(pattern, patternInfo, tablePattern, totalFreq) {
@@ -354,7 +370,7 @@ function tableStr(pattern, patternInfo, tablePattern, totalFreq) {
             table += "</th>";
         }
         for (const colInflection of colInflections) {
-            inflection = combineInflections(tablePattern, combineInflections(rowInflection, colInflection));
+            const inflection = combineInflections(tablePattern, combineInflections(rowInflection, colInflection));
             const affix = findCompatible(inflection, pattern);
             if (affix !== null) {
                 const affixStr = affix.replace(/([^\*]*$)/, "-$1").replaceAll(/\*/g, "…");
@@ -429,7 +445,7 @@ async function analyzeAndShowPatterns(formData) {
         json = await getJson(selectedWordClass);
     }
     //console.log("read json");
-    const patterns = analyzeAll(json, tablePattern);
+    const patterns = analyzeAll(json, tablePattern, formDataObj.showDefective == "on");
     //console.log("analyzed");
     showPatterns(patterns, tablePattern);
     document.getElementById("loader").classList.add("hidden");
@@ -441,6 +457,7 @@ function updateSettings(wordClass, features) {
     for (const [category, value] of Object.entries(features)) {
         document.getElementById(category + "Picker").children[1].value = value;
     }
+    document.getElementById("defectivePatternsCheckbox").checked = true;
 }
 
 async function viewPrecomputed(settings) {
@@ -571,6 +588,7 @@ const translations = {
         verbTypeLabel: "Non-finite verb form:",
         impersonalSubjectLabel: "Impersonal subject:",
         clippedImperativeLabel: "Clipped imperative:",
+        includeDefectivePatterns: "Include patterns with missing forms",
 
         nominative: "nominative",
         accusative: "accusative",
@@ -713,6 +731,7 @@ const translations = {
         verbTypeLabel: "Aðrar sagnbeygingar:",
         impersonalSubjectLabel: "Ópersónuleg sagnbeyging:",
         clippedImperativeLabel: "Stýfður boðháttur:",
+        includeDefectivePatterns: "Include patterns with missing forms",
 
         nominative: "nefnifall",
         accusative: "þolfall",
@@ -854,6 +873,7 @@ const translations = {
         verbTypeLabel: "Icke-finita verbformer:",
         impersonalSubjectLabel: "Opersonligt subjekt:",
         clippedImperativeLabel: "Klippt imperativ:",
+        includeDefectivePatterns: "Inkludera mönster som saknar former",
 
         nominative: "nominativ",
         accusative: "ackusativ",
@@ -942,7 +962,7 @@ const translations = {
               "adjektivens starka respektive svaga former. Verbböjningen, " +
               "framför allt de tre sista böjningskategorierna, " +
               "kan vara klumpiga och oflexibla att använda. Detta kommer förhoppningsvis fixas så småningom.<br>" +
-              "Affixen för ett mönster består av tecken som inte skiljer sig åt mellan de relavanta " +
+              "Affixen för ett mönster består av tecken som skiljer sig åt mellan de relavanta " +
               "böjningsformerna, alltså de som beskrivs av tabellerna. Detta betyder att affixen kan " +
               "förändras beroende på hur tabellerna är definierade. " +
               "<b>Analysen är långt ifrån perfekt och bör tas ned en nypa salt.</b> " +
