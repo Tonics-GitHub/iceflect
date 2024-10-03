@@ -231,7 +231,7 @@ function analyze(lexeme, tablePattern) {
         ([pattern, _]) => isPatternCompatibleWith(pattern, tablePattern)
     ));
     if (Object.keys(forms).length === 0) {
-        return {};
+        return {pattern: {}};
     }
     const formValues = Object.values(forms);
     const minLen = minLength(formValues);
@@ -279,10 +279,10 @@ function analyze(lexeme, tablePattern) {
         pattern[inflection] = affix;
     }
 
-    return pattern;
+    return {stem: stem, pattern: pattern};
 }
 
-function isDefective(pattern, tablePattern, lexeme) {
+function isDefective(pattern, tablePattern) {
     const rowInflections = allRowCombinations(tablePattern);
     const colInflections = allColCombinations(tablePattern);
     for (const rowInflection of rowInflections) {
@@ -300,14 +300,18 @@ function isDefective(pattern, tablePattern, lexeme) {
 function analyzeAll(lexemes, tablePattern, includeDefective) {
     let patterns = new Map();
     for (const lexeme of lexemes) {
-        const patternObj = analyze(lexeme, tablePattern);
+        const stemAndPattern = analyze(lexeme, tablePattern);
+        const patternObj = stemAndPattern.pattern;
         const pattern = JSON.stringify(patternObj, Object.keys(patternObj).sort());
         if (patterns.has(pattern)) {
             patternInfo = patterns.get(pattern);
             patternInfo.lexemes.push(lexeme);
             patternInfo.freq += lexeme.freq;
-        } else if (includeDefective || !isDefective(patternObj, tablePattern, lexeme)) {
-            patterns.set(pattern, {freq: lexeme.freq, lexemes: [lexeme]});
+            patternInfo.isSuppletive = false;
+        } else if (includeDefective || !isDefective(patternObj, tablePattern)) {
+            const stem = stemAndPattern.stem;
+            const isSuppletive = stem !== undefined && (stem === "" || stem[0] === "*");
+            patterns.set(pattern, {freq: lexeme.freq, lexemes: [lexeme], isSuppletive: isSuppletive});
         }
     }
     for (const patternInfo of patterns.values()) {
@@ -373,8 +377,16 @@ function tableStr(pattern, patternInfo, tablePattern, totalFreq) {
             const inflection = combineInflections(tablePattern, combineInflections(rowInflection, colInflection));
             const affix = findCompatible(inflection, pattern);
             if (affix !== null) {
-                const affixStr = affix.replace(/([^\*]*$)/, "-$1").replaceAll(/\*/g, "…");
-                const affixParts = affixStr.split("-");
+                // let affixStr;
+                // if (patternInfo.isSuppletive) {
+                //     affixStr = affix.replaceAll(/\*/g, "-…");
+                // } else {
+                //     affixStr = affix.replace(/([^\*]*$)/, "-$1").replaceAll(/\*/g, "-…");
+                // }
+                let affixStr = affix.replaceAll(/\*/g, "-…-");
+                if (!patternInfo.isSuppletive) {
+                    affixStr = "-" + affixStr;
+                }
                 table += "<td>" + affixStr;
             } else {
                 table += "<td>N/A";
