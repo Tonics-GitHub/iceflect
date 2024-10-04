@@ -92,6 +92,7 @@ function selectWordClass(wordClass) {
     selectedWordClass = wordClass;
     document.getElementById("analyzeButton").classList.remove("hidden");
     document.getElementById("defectivePatterns").classList.remove("hidden");
+    document.getElementById("onlySuffix").classList.remove("hidden");
 }
 
 function allCombinationsRec(char, tablePattern, idx, currComb, combs) {
@@ -226,7 +227,7 @@ function decode(affix) {
     return affix;
 }
 
-function analyze(lexeme, tablePattern) {
+function analyze(lexeme, tablePattern, onlySuffix) {
     let forms = Object.fromEntries(Object.entries(lexeme.forms).filter(
         ([pattern, _]) => isPatternCompatibleWith(pattern, tablePattern)
     ));
@@ -276,7 +277,7 @@ function analyze(lexeme, tablePattern) {
         if (betterForms != null) {
             affix = decode(affix);
         }
-        pattern[inflection] = affix;
+        pattern[inflection] = onlySuffix ? affix.match(/[^\*]*$/)[0] : affix;
     }
 
     return {stem: stem, pattern: pattern};
@@ -297,21 +298,21 @@ function isDefective(pattern, tablePattern) {
     return false;
 }
 
-function analyzeAll(lexemes, tablePattern, includeDefective) {
+function analyzeAll(lexemes, tablePattern, includeDefective, onlySuffix) {
     let patterns = new Map();
     for (const lexeme of lexemes) {
-        const stemAndPattern = analyze(lexeme, tablePattern);
+        const stemAndPattern = analyze(lexeme, tablePattern, onlySuffix);
         const patternObj = stemAndPattern.pattern;
         const pattern = JSON.stringify(patternObj, Object.keys(patternObj).sort());
         if (patterns.has(pattern)) {
             patternInfo = patterns.get(pattern);
             patternInfo.lexemes.push(lexeme);
             patternInfo.freq += lexeme.freq;
-            patternInfo.isSuppletive = false;
+            patternInfo.initialDash = true;
         } else if (includeDefective || !isDefective(patternObj, tablePattern)) {
             const stem = stemAndPattern.stem;
-            const isSuppletive = stem !== undefined && (stem === "" || stem[0] === "*");
-            patterns.set(pattern, {freq: lexeme.freq, lexemes: [lexeme], isSuppletive: isSuppletive});
+            const initialDash = stem === undefined || (stem !== "" && (onlySuffix || stem[0] !== "*"));
+            patterns.set(pattern, {freq: lexeme.freq, lexemes: [lexeme], initialDash: initialDash});
         }
     }
     for (const patternInfo of patterns.values()) {
@@ -378,13 +379,13 @@ function tableStr(pattern, patternInfo, tablePattern, totalFreq) {
             const affix = findCompatible(inflection, pattern);
             if (affix !== null) {
                 // let affixStr;
-                // if (patternInfo.isSuppletive) {
+                // if (!patternInfo.initialDash) {
                 //     affixStr = affix.replaceAll(/\*/g, "-…");
                 // } else {
                 //     affixStr = affix.replace(/([^\*]*$)/, "-$1").replaceAll(/\*/g, "-…");
                 // }
                 let affixStr = affix.replaceAll(/\*/g, "-…-");
-                if (!patternInfo.isSuppletive) {
+                if (patternInfo.initialDash) {
                     affixStr = "-" + affixStr;
                 }
                 table += "<td>" + affixStr;
@@ -457,7 +458,9 @@ async function analyzeAndShowPatterns(formData) {
         json = await getJson(selectedWordClass);
     }
     //console.log("read json");
-    const patterns = analyzeAll(json, tablePattern, formDataObj.showDefective == "on");
+    const showDefective = formDataObj.showDefective == "on";
+    const onlySuffix = formDataObj.onlySuffix == "on";
+    const patterns = analyzeAll(json, tablePattern, showDefective, onlySuffix);
     //console.log("analyzed");
     showPatterns(patterns, tablePattern);
     document.getElementById("loader").classList.add("hidden");
@@ -470,6 +473,7 @@ function updateSettings(wordClass, features) {
         document.getElementById(category + "Picker").children[1].value = value;
     }
     document.getElementById("defectivePatternsCheckbox").checked = true;
+    document.getElementById("onlySuffixCheckbox").checked = false;
 }
 
 async function viewPrecomputed(settings) {
@@ -601,6 +605,7 @@ const translations = {
         impersonalSubjectLabel: "Impersonal subject:",
         clippedImperativeLabel: "Clipped imperative:",
         includeDefectivePatterns: "Include patterns with missing forms",
+        onlyAnalyzeSuffixes: "Only analyze suffixes",
 
         nominative: "nominative",
         accusative: "accusative",
@@ -744,6 +749,7 @@ const translations = {
         impersonalSubjectLabel: "Ópersónuleg sagnbeyging:",
         clippedImperativeLabel: "Stýfður boðháttur:",
         includeDefectivePatterns: "Include patterns with missing forms",
+        onlyAnalyzeSuffixes: "Only analyze suffixes",
 
         nominative: "nefnifall",
         accusative: "þolfall",
@@ -886,6 +892,7 @@ const translations = {
         impersonalSubjectLabel: "Opersonligt subjekt:",
         clippedImperativeLabel: "Klippt imperativ:",
         includeDefectivePatterns: "Inkludera mönster som saknar former",
+        onlyAnalyzeSuffixes: "Analysera bara suffix",
 
         nominative: "nominativ",
         accusative: "ackusativ",
