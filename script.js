@@ -298,7 +298,7 @@ function isDefective(pattern, tablePattern) {
     return false;
 }
 
-function analyzeAll(lexemes, tablePattern, includeDefective, onlySuffix) {
+function analyzeAll(lexemes, tablePattern, excludeDefective, onlySuffix) {
     let patterns = new Map();
     for (const lexeme of lexemes) {
         const stemAndPattern = analyze(lexeme, tablePattern, onlySuffix);
@@ -309,7 +309,7 @@ function analyzeAll(lexemes, tablePattern, includeDefective, onlySuffix) {
             patternInfo.lexemes.push(lexeme);
             patternInfo.freq += lexeme.freq;
             patternInfo.initialDash = true;
-        } else if (includeDefective || !isDefective(patternObj, tablePattern)) {
+        } else if (!excludeDefective || !isDefective(patternObj, tablePattern)) {
             const stem = stemAndPattern.stem;
             const initialDash = stem === undefined || (stem !== "" && (onlySuffix || stem[0] !== "*"));
             patterns.set(pattern, {freq: lexeme.freq, lexemes: [lexeme], initialDash: initialDash});
@@ -350,7 +350,7 @@ function tableStr(pattern, patternInfo, tablePattern, totalFreq) {
     const rowInflections = allRowCombinations(tablePattern);
     const colInflections = allColCombinations(tablePattern);
     if (colInflections.length > 1 && rowInflections.length > 1) {
-        table += "<tr><td>";
+        table += "<tr><th></th>";
     }
     if (colInflections.length > 1) {
         if (rowInflections.length == 1) {
@@ -399,6 +399,17 @@ function tableStr(pattern, patternInfo, tablePattern, totalFreq) {
     return table
 }
 
+function allNA(table) {
+    for (let row of table.rows) {
+        for (let cell of row.getElementsByTagName("td")) {
+            if (cell.innerHTML != "N/A") {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 function showPatterns(patterns, tablePattern) {
     let totalFreq = 0;
     for (const [_, patternInfo] of patterns) {
@@ -414,6 +425,16 @@ function showPatterns(patterns, tablePattern) {
     //console.log("created tables");
     setLanguage(document.documentElement.lang, tablesElement);
     //console.log("set language");
+    console.log(patterns.length);
+    if (patterns.length == 0) {
+        setTimeout(function() {
+            alert(translations[document.documentElement.lang].noTablesAlert);
+        }, 0);
+    } else if (patterns.length == 1 && allNA(tablesElement.children[0])) {
+        setTimeout(function() {
+            alert(translations[document.documentElement.lang].noCompatibleFormsAlert);
+        }, 0);
+    }
 }
 
 function tableComplexity(tablePattern) {
@@ -443,7 +464,7 @@ async function analyzeAndShowPatterns(formData) {
     formDataObj = Object.fromEntries(formData);
     const tablePattern = categories.map((c) => formDataObj[c]).join("");
     if (tableComplexity(tablePattern) >= 256) {
-        alert("The tables are too complex. Try changing a 'vary by row/column' setting to a single feature.");
+        alert(translations[document.documentElement.lang].tablesTooComplexAlert);
         return;
     }
     document.getElementById("loader").classList.remove("hidden");
@@ -458,9 +479,9 @@ async function analyzeAndShowPatterns(formData) {
         json = await getJson(selectedWordClass);
     }
     //console.log("read json");
-    const showDefective = formDataObj.showDefective == "on";
+    const hideDefective = formDataObj.hideDefective == "on";
     const onlySuffix = formDataObj.onlySuffix == "on";
-    const patterns = analyzeAll(json, tablePattern, showDefective, onlySuffix);
+    const patterns = analyzeAll(json, tablePattern, hideDefective, onlySuffix);
     //console.log("analyzed");
     showPatterns(patterns, tablePattern);
     document.getElementById("loader").classList.add("hidden");
@@ -472,7 +493,7 @@ function updateSettings(wordClass, features) {
     for (const [category, value] of Object.entries(features)) {
         document.getElementById(category + "Picker").children[1].value = value;
     }
-    document.getElementById("defectivePatternsCheckbox").checked = true;
+    document.getElementById("defectivePatternsCheckbox").checked = false;
     document.getElementById("onlySuffixCheckbox").checked = false;
 }
 
@@ -604,7 +625,7 @@ const translations = {
         verbTypeLabel: "Non-finite verb form:",
         impersonalSubjectLabel: "Impersonal subject:",
         clippedImperativeLabel: "Clipped imperative:",
-        includeDefectivePatterns: "Include patterns with missing forms",
+        excludeDefectivePatterns: "Exclude patterns with missing forms",
         onlyAnalyzeSuffixes: "Only analyze suffixes",
 
         nominative: "nominative",
@@ -702,7 +723,13 @@ const translations = {
               "<b>The analysis is very imperfect and should be taken with a grain of salt.</b> " +
               "The patterns are sorted in order of frequency of which a word adhering to the pattern " +
               "appears in Icelandic texts, out of all words in the word class. This is the percentage found " +
-              "under the tables. The words under that are the 20 most common words adhering to the pattern."
+              "under the tables. The words under that are the 20 most common words adhering to the pattern.",
+        
+        noTablesAlert: "No tables to show. Try uncheck 'Exclude pattern with missing forms'.",
+        noCompatibleFormsAlert: "No forms are compatible with any table inflections. " + 
+                                "Try changing 'undefined' values to a defined value or vary by row/column.",
+        tablesTooComplexAlert: "The tables are too complex. " +
+                               "Try changing a 'vary by row/column' setting to a single feature."
     },
     is: {
         title: "Íslensk beygingarmynstur",
@@ -748,7 +775,7 @@ const translations = {
         verbTypeLabel: "Aðrar sagnbeygingar:",
         impersonalSubjectLabel: "Ópersónuleg sagnbeyging:",
         clippedImperativeLabel: "Stýfður boðháttur:",
-        includeDefectivePatterns: "Include patterns with missing forms",
+        excludeDefectivePatterns: "Exclude patterns with missing forms",
         onlyAnalyzeSuffixes: "Only analyze suffixes",
 
         nominative: "nefnifall",
@@ -845,7 +872,13 @@ const translations = {
               "<b>The analysis is very imperfect and should be taken with a grain of salt.</b> " +
               "The patterns are sorted in order of frequency of which a word adhering to the pattern " +
               "appears in Icelandic texts, out of all words in the word class. This is the percentage found " +
-              "under the tables. The words under that are the 20 most common words adhering to the pattern."
+              "under the tables. The words under that are the 20 most common words adhering to the pattern.",
+        
+        noTablesAlert: "No tables to show. Try uncheck 'Exclude pattern with missing forms'.",
+        noCompatibleFormsAlert: "No forms are compatible with any table inflections. " + 
+                                "Try changing 'undefined' values to a defined value or vary by row/column.",
+        tablesTooComplexAlert: "The tables are too complex. " +
+                               "Try changing a 'vary by row/column' setting to a single feature."
     },
     sv: {
         title: "Isländska böjningsmönster",
@@ -891,7 +924,7 @@ const translations = {
         verbTypeLabel: "Icke-finita verbformer:",
         impersonalSubjectLabel: "Opersonligt subjekt:",
         clippedImperativeLabel: "Klippt imperativ:",
-        includeDefectivePatterns: "Inkludera mönster som saknar former",
+        excludeDefectivePatterns: "Exkludera mönster som saknar former",
         onlyAnalyzeSuffixes: "Analysera bara suffix",
 
         nominative: "nominativ",
@@ -987,6 +1020,12 @@ const translations = {
               "<b>Analysen är långt ifrån perfekt och bör tas ned en nypa salt.</b> " +
               "Mönstren sorteras efter hur ofta ett ord som följer mönstret förekommer i isländska texter, " +
               "av alla ord i ordklassen. Detta är den procentsats som anges under tabellerna. " +
-              "Orden under det är de 20 vanligaste orden som följer mönstret."
+              "Orden under det är de 20 vanligaste orden som följer mönstret.",
+        
+        noTablesAlert: "Inga tabeller att visa. Testa att avmarkera \"Exkludera mönster som saknar former\".",
+        noCompatibleFormsAlert: "Inga former är kompatibla med någon tabbellböjning. " + 
+                                "Testa att ändra \"odefinierat\"-värden till ett definierat värde eller variera med rad/kolumn.",
+        tablesTooComplexAlert: "Tabellerna är för komplexa. " +
+                               "Testa att ändra en \"variera med rad/kolumn\"-inställning till ett enda värde."
     }
 };
