@@ -722,7 +722,7 @@ const translations = {
               "depending on how the tables are defined. " +
               "<b>The analysis is very imperfect and should be taken with a grain of salt.</b> " +
               "The patterns are sorted in order of frequency of which a word adhering to the pattern " +
-              "appears in Icelandic texts, out of all words in the word class. This is the percentage found " +
+              "appears in Icelandic texts, out of all words analyzed. This is the percentage found " +
               "under the tables. The words under that are the 20 most common words adhering to the pattern.",
         
         noTablesAlert: "No tables to show. Try uncheck 'Exclude pattern with missing forms'.",
@@ -871,7 +871,7 @@ const translations = {
               "depending on how the tables are defined. " +
               "<b>The analysis is very imperfect and should be taken with a grain of salt.</b> " +
               "The patterns are sorted in order of frequency of which a word adhering to the pattern " +
-              "appears in Icelandic texts, out of all words in the word class. This is the percentage found " +
+              "appears in Icelandic texts, out of all words analyzed. This is the percentage found " +
               "under the tables. The words under that are the 20 most common words adhering to the pattern.",
         
         noTablesAlert: "No tables to show. Try uncheck 'Exclude pattern with missing forms'.",
@@ -1019,7 +1019,7 @@ const translations = {
               "förändras beroende på hur tabellerna är definierade. " +
               "<b>Analysen är långt ifrån perfekt och bör tas ned en nypa salt.</b> " +
               "Mönstren sorteras efter hur ofta ett ord som följer mönstret förekommer i isländska texter, " +
-              "av alla ord i ordklassen. Detta är den procentsats som anges under tabellerna. " +
+              "av alla analyserade ord. Detta är den procentsats som anges under tabellerna. " +
               "Orden under det är de 20 vanligaste orden som följer mönstret.",
         
         noTablesAlert: "Inga tabeller att visa. Testa att avmarkera \"Exkludera mönster som saknar former\".",
