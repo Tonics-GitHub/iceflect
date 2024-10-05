@@ -421,7 +421,7 @@ function showPatterns(patterns, tablePattern) {
     }
     const tablesElement = document.getElementById("tables");
     tablesElement.innerHTML = tables;
-    navigator.clipboard.writeText(tables); // use when creating new precomputed tables
+    //navigator.clipboard.writeText(tables); // use when creating new precomputed tables
     //console.log("created tables");
     setLanguage(document.documentElement.lang, tablesElement);
     //console.log("set language");
