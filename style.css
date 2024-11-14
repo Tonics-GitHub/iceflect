@@ -33,7 +33,7 @@ select {
     padding-left: 2px;
 }
 
-#defectivePatterns, #onlySuffix {
+#defectivePatterns, #onlySuffix, #includeVariants {
     padding-top: 5px;
 }
 
@@ -108,6 +108,12 @@ form {
     margin-right: 100px;
     margin-top: 50px;
     margin-bottom: 10px;
+}
+
+.wordList {
+    max-height: 100px;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 table, th, td {

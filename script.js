@@ -71,7 +71,7 @@ const categoryValueDataText = [
     {"P": "pres", "p": "pst"},
     {"I": "ind", "S": "subj"},
     {"A": "act", "M": "mid"},
-    {"I": "impers", "i": "inf", "P": "presPart", "p": "PstPart", "S": "sup", "!": "imp", "O": "opt", "Q": "ques"},
+    {"I": "impers", "i": "inf", "P": "presPart", "p": "pstPart", "S": "sup", "!": "imp", "O": "opt", "Q": "ques"},
     {"A": "accSub", "D": "datSub", "G": "genSub", "d": "dummySub"},
     {"C": "clipped"}
 ]
@@ -93,6 +93,7 @@ function selectWordClass(wordClass) {
     document.getElementById("analyzeButton").classList.remove("hidden");
     document.getElementById("defectivePatterns").classList.remove("hidden");
     document.getElementById("onlySuffix").classList.remove("hidden");
+    document.getElementById("includeVariants").classList.remove("hidden");
 }
 
 function allCombinationsRec(char, tablePattern, idx, currComb, combs) {
@@ -188,10 +189,22 @@ function isJVOrVowel(char) {
     return "aáeéiíjoóuúvyýæö".indexOf(char.toLowerCase()) > -1;
 }
 
+function formsUsedAsList(forms, includeVariants) {
+    if (forms instanceof Array && includeVariants) {
+        return forms;
+    } else if (forms instanceof Array) {
+        return [forms[0]];
+    } else {
+        return [forms];
+    }
+}
+
 function areAllJVOrVowelAt(forms, idx) {
-    for (const [_, form] of Object.entries(forms)) {
-        if (!isJVOrVowel(form.charAt(idx))) {
-            return false;
+    for (const [_, variants] of Object.entries(forms)) {
+        for (const form of variants) {
+            if (!isJVOrVowel(form.charAt(idx))) {
+                return false;
+            }
         }
     }
     return true;
@@ -200,14 +213,17 @@ function areAllJVOrVowelAt(forms, idx) {
 function combineAt(forms, idx) {
     let altForms = {};
     let changed = false;
-    for (const [inflection, form] of Object.entries(forms)) {
-        if (form.length > idx + 1 && isJVOrVowel(form.charAt(idx + 1), idx)) {
-            changed = true;
-            const combinedChar = String.fromCharCode(form.charCodeAt(idx) * 256 + form.charCodeAt(idx + 1));
-            const altForm = form.substring(0, idx) + combinedChar + form.substring(idx + 2);
-            altForms[inflection] = altForm;
-        } else {
-            altForms[inflection] = form;
+    for (let [inflection, variants] of Object.entries(forms)) {
+        altForms[inflection] = [];
+        for (const form of variants) {
+            if (form.length > idx + 1 && isJVOrVowel(form.charAt(idx + 1), idx)) {
+                changed = true;
+                const combinedChar = String.fromCharCode(form.charCodeAt(idx) * 256 + form.charCodeAt(idx + 1));
+                const altForm = form.substring(0, idx) + combinedChar + form.substring(idx + 2);
+                altForms[inflection].push(altForm);
+            } else {
+                altForms[inflection].push(form);
+            }
         }
     }
     if (changed) {
@@ -227,14 +243,16 @@ function decode(affix) {
     return affix;
 }
 
-function analyze(lexeme, tablePattern, onlySuffix) {
+function analyze(lexeme, tablePattern, onlySuffix, includeVariants) {
     let forms = Object.fromEntries(Object.entries(lexeme.forms).filter(
         ([pattern, _]) => isPatternCompatibleWith(pattern, tablePattern)
+    ).map(
+        ([pattern, variants]) => [pattern, formsUsedAsList(variants, includeVariants)]
     ));
     if (Object.keys(forms).length === 0) {
         return {pattern: {}};
     }
-    const formValues = Object.values(forms);
+    const formValues = Object.values(forms).flat();
     const minLen = minLength(formValues);
     let stem = makeStem(formValues, minLen);
     let stemLen = stem.replaceAll("*", "").length;
@@ -243,7 +261,7 @@ function analyze(lexeme, tablePattern, onlySuffix) {
         if (areAllJVOrVowelAt(forms, i)) {
             const altForms = combineAt(forms, i);
             if (altForms) {
-                let altStem = makeStem(Object.values(altForms), minLen);
+                let altStem = makeStem(Object.values(altForms).flat(), minLen);
                 let altStemLen = altStem.replaceAll("*", "").length;
                 if (altStemLen > stemLen) {
                     stem = altStem;
@@ -261,8 +279,7 @@ function analyze(lexeme, tablePattern, onlySuffix) {
         ([pattern, _]) => isPatternCompatibleWith(pattern, tablePattern)
     ));*/
 
-    pattern = {};
-    for (const [inflection, form] of Object.entries(forms)) {
+    function constructAffix(form, stem, hasBetterForms, onlySuffix) {
         const formLC = form.toLowerCase();
         let affix = "";
         for (let i = 0; i < stem.length; i++) {
@@ -274,10 +291,16 @@ function analyze(lexeme, tablePattern, onlySuffix) {
         }
         affix += form.substring(stem.length);
         affix = affix.replace(/^\*+/, "").replaceAll(/\*+/g, "*");
-        if (betterForms != null) {
+        if (hasBetterForms) {
             affix = decode(affix);
         }
-        pattern[inflection] = onlySuffix ? affix.match(/[^\*]*$/)[0] : affix;
+        return onlySuffix ? affix.match(/[^\*]*$/)[0] : affix;
+    }
+
+    pattern = {};
+    for (let [inflection, variants] of Object.entries(forms)) {
+        affixes = variants.map((form) => constructAffix(form, stem, betterForms != null, onlySuffix));
+        pattern[inflection] = affixes;
     }
 
     return {stem: stem, pattern: pattern};
@@ -298,10 +321,10 @@ function isDefective(pattern, tablePattern) {
     return false;
 }
 
-function analyzeAll(lexemes, tablePattern, excludeDefective, onlySuffix) {
+function analyzeAll(lexemes, tablePattern, excludeDefective, onlySuffix, includeVariants) {
     let patterns = new Map();
     for (const lexeme of lexemes) {
-        const stemAndPattern = analyze(lexeme, tablePattern, onlySuffix);
+        const stemAndPattern = analyze(lexeme, tablePattern, onlySuffix, includeVariants);
         const patternObj = stemAndPattern.pattern;
         const pattern = JSON.stringify(patternObj, Object.keys(patternObj).sort());
         if (patterns.has(pattern)) {
@@ -337,16 +360,19 @@ function tableStr(pattern, patternInfo, tablePattern, totalFreq) {
     const freqPercent = (patternInfo.freq / totalFreq * 100)
     const freqStr = freqPercent.toLocaleString(document.documentElement.lang, {maximumFractionDigits: 2});
     table += "<caption>(" + freqStr + "%)<br>";
+    table += "<div class=\"wordList\">"
     for (let i = 0; i < patternInfo.lexemes.length; i++) {
-        if (i == 20) {
-            table += "…";
+        if (i == 200) {
+            table += "… (<span data-text='and'></span> ";
+            table += patternInfo.lexemes.length - 200;
+            table += " <span data-text='more'></span>)";
             break;
         }
-        const lemma = patternInfo.lexemes[i].lemma
-        table += "<a href='https://bin.arnastofnun.is/leit/" + lemma + "' target='_blank'>" + lemma + "</a> ";
+        const lexeme = patternInfo.lexemes[i];
+        table += "<a href='https://bin.arnastofnun.is/beyging/" + lexeme.id + "' target='_blank'>" + lexeme.lemma + "</a> ";
         //table += "(" + patternInfo.lexemes[i].freq + ") ";
     }
-    table += "</caption>";
+    table += "</div></caption>";
     const rowInflections = allRowCombinations(tablePattern);
     const colInflections = allColCombinations(tablePattern);
     if (colInflections.length > 1 && rowInflections.length > 1) {
@@ -376,19 +402,12 @@ function tableStr(pattern, patternInfo, tablePattern, totalFreq) {
         }
         for (const colInflection of colInflections) {
             const inflection = combineInflections(tablePattern, combineInflections(rowInflection, colInflection));
-            const affix = findCompatible(inflection, pattern);
-            if (affix !== null) {
-                // let affixStr;
-                // if (!patternInfo.initialDash) {
-                //     affixStr = affix.replaceAll(/\*/g, "-…");
-                // } else {
-                //     affixStr = affix.replace(/([^\*]*$)/, "-$1").replaceAll(/\*/g, "-…");
-                // }
-                let affixStr = affix.replaceAll(/\*/g, "-…-");
-                if (patternInfo.initialDash) {
-                    affixStr = "-" + affixStr;
-                }
-                table += "<td>" + affixStr;
+            const affixes = findCompatible(inflection, pattern);
+            if (affixes !== null) {
+                affixesStr = affixes.map((affix) =>
+                    (patternInfo.initialDash ? "-" : "") + affix.replaceAll(/\*/g, "-…-")
+                ).join(" / ");
+                table += "<td>" + affixesStr;
             } else {
                 table += "<td>N/A";
             }
@@ -425,7 +444,6 @@ function showPatterns(patterns, tablePattern) {
     //console.log("created tables");
     setLanguage(document.documentElement.lang, tablesElement);
     //console.log("set language");
-    console.log(patterns.length);
     if (patterns.length == 0) {
         setTimeout(function() {
             alert(translations[document.documentElement.lang].noTablesAlert);
@@ -481,7 +499,8 @@ async function analyzeAndShowPatterns(formData) {
     //console.log("read json");
     const hideDefective = formDataObj.hideDefective == "on";
     const onlySuffix = formDataObj.onlySuffix == "on";
-    const patterns = analyzeAll(json, tablePattern, hideDefective, onlySuffix);
+    const includeVariants = formDataObj.includeVariants == "on";
+    const patterns = analyzeAll(json, tablePattern, hideDefective, onlySuffix, includeVariants);
     //console.log("analyzed");
     showPatterns(patterns, tablePattern);
     document.getElementById("loader").classList.add("hidden");
@@ -495,6 +514,7 @@ function updateSettings(wordClass, features) {
     }
     document.getElementById("defectivePatternsCheckbox").checked = false;
     document.getElementById("onlySuffixCheckbox").checked = false;
+    document.getElementById("includeVariantsCheckbox").checked = false;
 }
 
 async function viewPrecomputed(settings) {
@@ -627,6 +647,7 @@ const translations = {
         clippedImperativeLabel: "Clipped imperative:",
         excludeDefectivePatterns: "Exclude patterns with missing forms",
         onlyAnalyzeSuffixes: "Only analyze suffixes",
+        includeVariantForms: "Include variant forms",
 
         nominative: "nominative",
         accusative: "accusative",
@@ -704,6 +725,9 @@ const translations = {
         dummySub: "Dummy sub.",
         clipped: "Clipped",
 
+        and: "and",
+        more: "more",
+
         info: "On this page you can define and view tables of inflectional patterns for Icelandic words. " +
               "Start with clicking some of the buttons on the left to view precomputed tables. " +
               "This should give you an idea about how to use the drop-down menus to define " +
@@ -723,7 +747,7 @@ const translations = {
               "<b>The analysis is very imperfect and should be taken with a grain of salt.</b> " +
               "The patterns are sorted in order of frequency of which a word adhering to the pattern " +
               "appears in Icelandic texts, out of all words analyzed. This is the percentage found " +
-              "under the tables. The words under that are the 20 most common words adhering to the pattern.",
+              "under the tables. The words under that are the 200 most common words adhering to the pattern.",
         
         noTablesAlert: "No tables to show. Try uncheck 'Exclude pattern with missing forms'.",
         noCompatibleFormsAlert: "No forms are compatible with any table inflections. " + 
@@ -748,7 +772,7 @@ const translations = {
         personalPronoun: "persónufornafn",
         reflexivePronoun: "afturbeygt fornafn",
         otherPronoun: "annað fornafn",
-        definiteArticle: "lausur greinir",
+        definiteArticle: "laus greinir",
         adverb: "atviksorð",
 
         indefNoun: "nafnorð án greinis",
@@ -777,6 +801,7 @@ const translations = {
         clippedImperativeLabel: "Stýfður boðháttur:",
         excludeDefectivePatterns: "Exclude patterns with missing forms",
         onlyAnalyzeSuffixes: "Only analyze suffixes",
+        includeVariantForms: "Include variant forms",
 
         nominative: "nefnifall",
         accusative: "þolfall",
@@ -854,6 +879,9 @@ const translations = {
         dummySub: "Ópers. gf.",
         clipped: "Stý. bh.",
 
+        and: "og",
+        more: "fleiri",
+
         info: "On this page you can define and view tables of inflectional patterns for Icelandic words. " +
               "Start with clicking some of the buttons on the left to view precomputed tables. " +
               "This should give you an idea about how to use the drop-down menus to define " +
@@ -872,7 +900,7 @@ const translations = {
               "<b>The analysis is very imperfect and should be taken with a grain of salt.</b> " +
               "The patterns are sorted in order of frequency of which a word adhering to the pattern " +
               "appears in Icelandic texts, out of all words analyzed. This is the percentage found " +
-              "under the tables. The words under that are the 20 most common words adhering to the pattern.",
+              "under the tables. The words under that are the 200 most common words adhering to the pattern.",
         
         noTablesAlert: "No tables to show. Try uncheck 'Exclude pattern with missing forms'.",
         noCompatibleFormsAlert: "No forms are compatible with any table inflections. " + 
@@ -926,6 +954,7 @@ const translations = {
         clippedImperativeLabel: "Klippt imperativ:",
         excludeDefectivePatterns: "Exkludera mönster som saknar former",
         onlyAnalyzeSuffixes: "Analysera bara suffix",
+        includeVariantForms: "Inkludera alternativa former",
 
         nominative: "nominativ",
         accusative: "ackusativ",
@@ -992,7 +1021,7 @@ const translations = {
         impers: "Impers.",
         inf: "Inf.",
         presPart: "Pres. part.",
-        pstPart: "Pret. part.",
+        pstPart: "Perf. part.",
         sup: "Sup.",
         imp: "Imp.",
         opt: "Opt.",
@@ -1002,6 +1031,9 @@ const translations = {
         genSub: "Gen. sub.",
         dummySub: "Expl. sub.",
         clipped: "Klippt",
+
+        and: "och",
+        more: "fler",
 
         info: "På denna sida kan du definiera och se tableller med böjningsmönster för isländska ord. " +
               "Börja med att klicka på knapparna till vänster för att se fördefinierade tabeller, " +
@@ -1020,7 +1052,7 @@ const translations = {
               "<b>Analysen är långt ifrån perfekt och bör tas ned en nypa salt.</b> " +
               "Mönstren sorteras efter hur ofta ett ord som följer mönstret förekommer i isländska texter, " +
               "av alla analyserade ord. Detta är den procentsats som anges under tabellerna. " +
-              "Orden under det är de 20 vanligaste orden som följer mönstret.",
+              "Orden under det är de 200 vanligaste orden som följer mönstret.",
         
         noTablesAlert: "Inga tabeller att visa. Testa att avmarkera \"Exkludera mönster som saknar former\".",
         noCompatibleFormsAlert: "Inga former är kompatibla med någon tabbellböjning. " + 
