@@ -557,6 +557,10 @@ async function viewPrecomputed(settings) {
             updateSettings("verb", { case: "*", person: "-", number: "-", gender: "*", definiteness: "*", degree: "*",
                 tense: "|", mood: "I", voice: "A", verbType: "*", impersonalSubject: "*", clippedImperative: "*" });
             break;
+        case "pastParticiple":
+            updateSettings("verb", { case: "-", person: "*", number: "-", gender: "|", definiteness: "I", degree: "*",
+                tense: "*", mood: "*", voice: "*", verbType: "p", impersonalSubject: "*", clippedImperative: "*" });
+            break;
         case "numeral":
             updateSettings("numeral", { case: "-", number: "-", gender: "|" });
             break;
@@ -628,6 +632,7 @@ const translations = {
         strongPositiveAdjective: "Strong positive adjective",
         activeVerb: "Active verb",
         activeIndicativeVerb: "Active indicative verb",
+        pastParticiple: "Past participle",
 
         undefined: "undefined",
         varyByRow: "vary by row",
@@ -783,6 +788,7 @@ const translations = {
         strongPositiveAdjective: "Sterkt frumstig lýsingarorð",
         activeVerb: "germyndarsögn",
         activeIndicativeVerb: "germyndarframsögusögn",
+        pastParticiple: "lýsingarháttur þátíðar",
 
         undefined: "óskilgreint",
         varyByRow: "breyt eftir röð",
@@ -937,6 +943,7 @@ const translations = {
         strongPositiveAdjective: "starkt positivt adjektiv",
         activeVerb: "aktivt verb",
         activeIndicativeVerb: "aktivt indikativt verb",
+        pastParticiple: "perfekt particip",
 
         undefined: "odefinierat",
         varyByRow: "variera med rad",
