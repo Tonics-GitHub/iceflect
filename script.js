@@ -645,6 +645,7 @@ const translations = {
         verbTypeLabel: "Non-finite verb form:",
         impersonalSubjectLabel: "Impersonal subject:",
         clippedImperativeLabel: "Clipped imperative:",
+
         excludeDefectivePatterns: "Exclude patterns with missing forms",
         onlyAnalyzeSuffixes: "Only analyze suffixes",
         includeVariantForms: "Include variant forms",
@@ -749,9 +750,9 @@ const translations = {
               "appears in Icelandic texts, out of all words analyzed. This is the percentage found " +
               "under the tables. The words under that are the 200 most common words adhering to the pattern.",
         
-        noTablesAlert: "No tables to show. Try uncheck 'Exclude pattern with missing forms'.",
+        noTablesAlert: "No tables to show. Try unchecking 'Exclude pattern with missing forms'.",
         noCompatibleFormsAlert: "No forms are compatible with any table inflections. " + 
-                                "Try changing 'undefined' values to a defined value or vary by row/column.",
+                                "Try changing 'undefined' values to a defined value or vary by row/column, or the reverse.",
         tablesTooComplexAlert: "The tables are too complex. " +
                                "Try changing a 'vary by row/column' setting to a single feature."
     },
@@ -799,9 +800,10 @@ const translations = {
         verbTypeLabel: "Aðrar sagnbeygingar:",
         impersonalSubjectLabel: "Ópersónuleg sagnbeyging:",
         clippedImperativeLabel: "Stýfður boðháttur:",
-        excludeDefectivePatterns: "Exclude patterns with missing forms",
-        onlyAnalyzeSuffixes: "Only analyze suffixes",
-        includeVariantForms: "Include variant forms",
+
+        excludeDefectivePatterns: "Undanskil mynstur sem vantar beygingarmyndir",
+        onlyAnalyzeSuffixes: "Greina aðeins viðskeyti",
+        includeVariantForms: "Fela í sér afbrigði af beygingarmyndum",
 
         nominative: "nefnifall",
         accusative: "þolfall",
@@ -882,31 +884,31 @@ const translations = {
         and: "og",
         more: "fleiri",
 
-        info: "On this page you can define and view tables of inflectional patterns for Icelandic words. " +
-              "Start with clicking some of the buttons on the left to view precomputed tables. " +
-              "This should give you an idea about how to use the drop-down menus to define " +
-              "your own table structures. " +
-              "The word classes and inflectional categories used can be found " +
-              "<a href=\"https://bin.arnastofnun.is/DMII/infl-system/ target='_blank'\">here</a>. " +
-              "A list of the possible inflections can be found " +
-              "<a href=\"https://bin.arnastofnun.is/DMII/LTdata/tagset/ target='_blank'\">here</a>. " +
-              "Note that this page consistently uses the terms \"indefinite\" and \"definite\" to refer " +
-              "to the strong and weak forms of adjectives respectively. Dealing with verb conjugation, " +
-              "especially when the last three inflectional categories are involved, " +
-              "can currently be clunky and inflexible. This will hopefully be fixed in the future.<br>" +
-              "The affixes of a pattern consist of characters that differ between the relevant inflectional " +
-              "forms, i.e. those described in the tables. This means that the resulting affixes may change " +
-              "depending on how the tables are defined. " +
-              "<b>The analysis is very imperfect and should be taken with a grain of salt.</b> " +
-              "The patterns are sorted in order of frequency of which a word adhering to the pattern " +
-              "appears in Icelandic texts, out of all words analyzed. This is the percentage found " +
-              "under the tables. The words under that are the 200 most common words adhering to the pattern.",
+        info: "Á þessari síðu geturðu skilgreint og skoðað töflur með beygingarmynstrum fyrir íslensk orð. " +
+              "Byrjaðu á því að smella á hnappana til vinstri til að skoða fyrirfram skilgreindar töflur, " +
+              "sem ættu að gefa þér hugmynd um hvernig fellivalmyndirnar eru notaðar til að skilgreina eigin töflur. " +
+              "Flokkar orða og beygingarflokka sem eru notaðir finnast " +
+              "<a href=\"https://bin.arnastofnun.is/malfraedi/\" target='_blank'>hér</a>. " +
+              "Listi yfir allar mögulegar beygingar er " +
+              "<a href=\"https://bin.arnastofnun.is/mark/\" target='_blank'>hér</a>. " +
+              "Athugaðu að þessi síða notar orðin \"án greinis\" og \"með greini\" fyrir " +
+              "sterk og veik form lýsingarorða, í þeirri röð. Beyging sagnorða, " +
+              "sérstaklega síðustu þrír beygingarflokkarnir, " +
+              "getur verið klunnaleg og óþjált að nota. Vonandi verður þetta lagað með tímanum.<br>" +
+              "Aðskeytin fyrir mynstur samanstanda af táknum sem eru mismunandi milli viðkomandi " +
+              "beygingarmynda, þ.e. þeirra sem eru lýst í töflunum. Þetta þýðir að aðskeytin geta " +
+              "breyst eftir því hvernig töflurnar eru skilgreindar. " +
+              "<b>Greiningin er langt frá því að vera fullkomin og ætti að taka með fyrirvara.</b> " +
+              "Mynstrin eru flokkuð eftir því hve oft orð sem fylgja mynstrinu koma fyrir í íslenskum textum, " +
+              "miðað við öll greind orð. Þetta er það hlutfall sem gefið er upp undir töflunum. " +
+              "Orðin fyrir neðan eru 200 algengustu orðin sem fylgja mynstrinu.",
+
         
-        noTablesAlert: "No tables to show. Try uncheck 'Exclude pattern with missing forms'.",
-        noCompatibleFormsAlert: "No forms are compatible with any table inflections. " + 
-                                "Try changing 'undefined' values to a defined value or vary by row/column.",
-        tablesTooComplexAlert: "The tables are too complex. " +
-                               "Try changing a 'vary by row/column' setting to a single feature."
+        noTablesAlert: "Engar töflur til að sýna. Reyndu að afmerkja 'Undanskil mynstur sem vantar beygingarmyndir'.",
+        noCompatibleFormsAlert: "Engin form eru samhæf við nein töflubeygingar. Reyndu að breyta 'óskilgreindum' " +
+                                "gildum í skilgreind gildi eða breyta eftir röðum/dálkum, eða öfugt.",
+        tablesTooComplexAlert: "Töflurnar eru of flóknar. " +
+                               "Reyndu að breyta 'breytast eftir röð/dálki' stillingu í eina eiginleika."
     },
     sv: {
         title: "Isländska böjningsmönster",
@@ -952,6 +954,7 @@ const translations = {
         verbTypeLabel: "Icke-finita verbformer:",
         impersonalSubjectLabel: "Opersonligt subjekt:",
         clippedImperativeLabel: "Klippt imperativ:",
+
         excludeDefectivePatterns: "Exkludera mönster som saknar former",
         onlyAnalyzeSuffixes: "Analysera bara suffix",
         includeVariantForms: "Inkludera alternativa former",
@@ -1056,7 +1059,7 @@ const translations = {
         
         noTablesAlert: "Inga tabeller att visa. Testa att avmarkera \"Exkludera mönster som saknar former\".",
         noCompatibleFormsAlert: "Inga former är kompatibla med någon tabbellböjning. " + 
-                                "Testa att ändra \"odefinierat\"-värden till ett definierat värde eller variera med rad/kolumn.",
+                                "Testa att ändra \"odefinierat\"-värden till ett definierat värde eller variera med rad/kolumn, eler det omvända.",
         tablesTooComplexAlert: "Tabellerna är för komplexa. " +
                                "Testa att ändra en \"variera med rad/kolumn\"-inställning till ett enda värde."
     }
