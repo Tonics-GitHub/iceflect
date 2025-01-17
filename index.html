@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
     <link rel="stylesheet" href="style.css">
-    <script src="script.js"></script>
+    <script src="analysis.js"></script>
+    <script src="translations.js"></script>
+    <script src="index.js"></script>
 </head>
 <body>
     <div class="grid-container">
@@ -41,7 +43,14 @@
                 <b>The analysis is very imperfect and should be taken with a grain of salt.</b>
                 The patterns are sorted in order of frequency of which a word adhering to the pattern
                 appears in Icelandic texts, out of all words analyzed. This is the percentage found
-                under the tables. The words under that are the 20 most common words adhering to the pattern.
+                under the tables. The words under that are the 200 most common words adhering to the pattern.<br>
+
+                The filter is used to restrict the analysis to a subset of the words. The inflection field is used
+                to specify the inflection to apply the restriction to. It uses the inflection abbreviations used
+                in the table headings, in any of the three available languages.
+                It is case-insensitive, with periods optional. For example, 'indef nom sg' works. The form field
+                specifies which words to include. It allows the same format as is used in the tables,
+                including / for options and () for grouping. For example, -ur/-i, -æ...æ-, and -ing(ur/i/) all work.
             </p>
         </div>
         <div class="menu">
@@ -130,6 +139,12 @@
             </div>
 
             <form onsubmit="analyzeAndShowPatterns(new FormData(this)); return false">
+                <div id="wordFilter" class="hidden" style="margin-bottom:20px;">
+                    <label data-text="filterInflection" for="filterInflection">Filter inflection</label>
+                    <input type="text" id="filterInflection" name="filterInflection" placeholder="Default: lemma" size="30"><br>
+                    <label data-text="withForm" for="filterForm">with form</label>
+                    <input type="text" id="filterForm" name="filterForm" placeholder="Default: any" size="30" style="margin-top:5px;">
+                </div>
                 <div class="form-group">
                     <div id="casePicker" class="hidden" style="float:left;margin-right:20px;">
                         <label for="selectCase" style="display:block;" data-text="caseLabel">Case:</label>
